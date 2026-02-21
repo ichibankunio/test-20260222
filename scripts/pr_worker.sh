@@ -22,6 +22,7 @@ POLL_INTERVAL="${POLL_INTERVAL:-60}"
 TRIGGER_PREFIX="${TRIGGER_PREFIX:-@codex}"
 STATE_DIR="${STATE_DIR:-${ROOT_DIR}/.codex-worker}"
 LOCK_DIR="${STATE_DIR}/pr-lock"
+WORKTREE_LOCK_DIR="${STATE_DIR}/worktree-lock"
 PROCESSED_DIR="${STATE_DIR}/processed-comments"
 LOG_DIR="${STATE_DIR}/logs"
 BASE_BRANCH="${BASE_BRANCH:-main}"
@@ -34,13 +35,29 @@ if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
 fi
 
 cleanup() {
+  rmdir "${WORKTREE_LOCK_DIR}" >/dev/null 2>&1 || true
   rmdir "${LOCK_DIR}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
+log() {
+  echo "[pr_worker] $*"
+}
+
+acquire_worktree_lock() {
+  while ! mkdir "${WORKTREE_LOCK_DIR}" 2>/dev/null; do
+    log "worktree lock busy; waiting..."
+    sleep 2
+  done
+}
+
+release_worktree_lock() {
+  rmdir "${WORKTREE_LOCK_DIR}" >/dev/null 2>&1 || true
+}
+
 ensure_main_ready() {
   if [[ -n "$(git status --porcelain)" ]]; then
-    echo "worktree is dirty; skip loop until clean." >&2
+    log "worktree is dirty; skip loop until clean."
     return 1
   fi
   if [[ "$(git branch --show-current)" != "${BASE_BRANCH}" ]]; then
@@ -106,9 +123,13 @@ EOF
     git checkout "${BASE_BRANCH}" >/dev/null 2>&1 || true
   fi
 
-  if codex exec --full-auto -C "$(pwd)" -o "${response_file}" - <"${prompt_file}" >"${log_file}" 2>&1; then
-    :
-  else
+  set +e
+  codex exec --full-auto -C "$(pwd)" -o "${response_file}" - <"${prompt_file}" 2>&1 \
+    | tee "${log_file}" \
+    | while IFS= read -r line; do log "pr #${pr_number} comment #${comment_id} | ${line}"; done
+  codex_status=${PIPESTATUS[0]}
+  set -e
+  if [[ "${codex_status}" -ne 0 ]]; then
     gh pr comment "${pr_number}" --repo "${REPO}" --body "Codex failed while processing [this comment](${comment_url}). See worker logs."
     git checkout "${BASE_BRANCH}" >/dev/null 2>&1 || true
     git pull --ff-only origin "${BASE_BRANCH}" >/dev/null 2>&1 || true
@@ -149,12 +170,14 @@ EOF
   rm -rf "${tmp_dir}"
 }
 
-echo "starting pr worker for ${REPO} (prefix=${TRIGGER_PREFIX}, interval=${POLL_INTERVAL}s)"
+log "starting for ${REPO} (prefix=${TRIGGER_PREFIX}, interval=${POLL_INTERVAL}s)"
 
 while true; do
   handled_any=false
+  acquire_worktree_lock
 
   if ! ensure_main_ready; then
+    release_worktree_lock
     sleep "${POLL_INTERVAL}"
     continue
   fi
@@ -178,12 +201,12 @@ while true; do
         mode="reply-only"
       fi
 
-      echo "processing PR #${pr_number} comment #${comment_id} (${mode})"
+      log "processing PR #${pr_number} comment #${comment_id} (${mode})"
       handled_any=true
       if run_codex_for_comment "${pr_number}" "${comment_id}" "${comment_url}" "${comment_body}" "${head_branch}" "${mode}"; then
         touch "${PROCESSED_DIR}/${comment_id}.done"
       else
-        echo "failed PR #${pr_number} comment #${comment_id}" >&2
+        log "failed PR #${pr_number} comment #${comment_id}"
       fi
     done < <(
       {
@@ -199,8 +222,9 @@ while true; do
     )
   done < <(gh pr list --repo "${REPO}" --state open --limit 100 --json number --jq '.[].number')
   if [[ "${handled_any}" != "true" ]]; then
-    echo "poll: no new @codex PR comments"
+    log "poll: no new @codex PR comments"
   fi
+  release_worktree_lock
 
   sleep "${POLL_INTERVAL}"
 done

@@ -13,6 +13,7 @@ LABEL="${LABEL:-autocodex}"
 POLL_INTERVAL="${POLL_INTERVAL:-60}"
 STATE_DIR="${STATE_DIR:-${ROOT_DIR}/.codex-worker}"
 LOCK_DIR="${STATE_DIR}/lock"
+WORKTREE_LOCK_DIR="${STATE_DIR}/worktree-lock"
 PROCESSED_DIR="${STATE_DIR}/processed"
 LOG_DIR="${STATE_DIR}/logs"
 
@@ -24,30 +25,50 @@ if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
 fi
 
 cleanup() {
+  rmdir "${WORKTREE_LOCK_DIR}" >/dev/null 2>&1 || true
   rmdir "${LOCK_DIR}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-echo "starting issue worker for ${REPO} (label=${LABEL}, interval=${POLL_INTERVAL}s)"
+log() {
+  echo "[issue_worker] $*"
+}
+
+acquire_worktree_lock() {
+  while ! mkdir "${WORKTREE_LOCK_DIR}" 2>/dev/null; do
+    log "worktree lock busy; waiting..."
+    sleep 2
+  done
+}
+
+release_worktree_lock() {
+  rmdir "${WORKTREE_LOCK_DIR}" >/dev/null 2>&1 || true
+}
+
+log "starting for ${REPO} (label=${LABEL}, interval=${POLL_INTERVAL}s)"
 
 while true; do
   handled_any=false
+  acquire_worktree_lock
 
   # Always stay on main before scanning the next issue.
   if [[ -n "$(git status --porcelain)" ]]; then
-    echo "worktree is dirty; skip polling until clean." >&2
+    log "worktree is dirty; skip polling until clean."
+    release_worktree_lock
     sleep "${POLL_INTERVAL}"
     continue
   fi
   if [[ "$(git branch --show-current)" != "main" ]]; then
     if ! git checkout main >/dev/null 2>&1; then
-      echo "failed to checkout main; retry later." >&2
+      log "failed to checkout main; retry later."
+      release_worktree_lock
       sleep "${POLL_INTERVAL}"
       continue
     fi
   fi
   if ! git pull --ff-only origin main >/dev/null 2>&1; then
-    echo "failed to update main; retry later." >&2
+    log "failed to update main; retry later."
+    release_worktree_lock
     sleep "${POLL_INTERVAL}"
     continue
   fi
@@ -68,16 +89,21 @@ while true; do
   if [[ -n "${NEXT_ISSUE}" ]]; then
     handled_any=true
     LOG_FILE="${LOG_DIR}/issue-${NEXT_ISSUE}-$(date +%Y%m%d%H%M%S).log"
-    echo "processing issue #${NEXT_ISSUE}"
-    if "${RUN_ISSUE_SCRIPT}" "${NEXT_ISSUE}" >"${LOG_FILE}" 2>&1; then
+    log "processing issue #${NEXT_ISSUE}"
+    set +e
+    "${RUN_ISSUE_SCRIPT}" "${NEXT_ISSUE}" 2>&1 \
+      | tee "${LOG_FILE}" \
+      | while IFS= read -r line; do log "issue #${NEXT_ISSUE} | ${line}"; done
+    run_status=${PIPESTATUS[0]}
+    set -e
+    if [[ "${run_status}" -eq 0 ]]; then
       touch "${PROCESSED_DIR}/${NEXT_ISSUE}.done"
-      echo "issue #${NEXT_ISSUE} completed"
+      log "issue #${NEXT_ISSUE} completed"
     else
-      run_status=$?
       if [[ "${run_status}" -eq 20 ]]; then
-        echo "issue #${NEXT_ISSUE} waiting for reviewer response"
+        log "issue #${NEXT_ISSUE} waiting for reviewer response"
       else
-        echo "issue #${NEXT_ISSUE} failed. see ${LOG_FILE}" >&2
+        log "issue #${NEXT_ISSUE} failed. see ${LOG_FILE}"
         # Best-effort return to main after failure.
         if [[ -z "$(git status --porcelain)" ]]; then
           git checkout main >/dev/null 2>&1 || true
@@ -86,8 +112,9 @@ while true; do
     fi
   fi
   if [[ "${handled_any}" != "true" ]]; then
-    echo "poll: no new autocodex issues"
+    log "poll: no new autocodex issues"
   fi
+  release_worktree_lock
 
   sleep "${POLL_INTERVAL}"
 done
