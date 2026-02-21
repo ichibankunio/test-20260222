@@ -1,0 +1,47 @@
+name: Feature Request
+description: Add or change gameplay behavior
+title: "[Feature] "
+labels:
+  - feature
+  - autocodex
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: リクエスト
+      description: やりたい変更を自由に書いてください。
+      placeholder: 例) 背景色を目に優しい色に変えて
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: 必要なら編集してください（そのまま送信してもOK）。
+      value: |
+        - （必要ならここを編集）
+        - 背景色が変わっていること
+    validations:
+      required: false
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: 非対象
+      description: 必要なら編集してください（そのまま送信してもOK）。
+      value: |
+        - なし
+    validations:
+      required: false
+
+  - type: textarea
+    id: verify_steps
+    attributes:
+      label: 確認手順
+      description: 必要なら編集してください（そのまま送信してもOK）。
+      value: |
+        1. PRのPreview URLを開く
+        2. 変更内容を確認する
+    validations:
+      required: false
