@@ -20,7 +20,7 @@ type MainScene struct {
 }
 
 func (s *MainScene) Init(_ *flib.Game) {
-	s.playerX = 160
+	s.playerX = playerScreenOffsetX
 	s.playerY = groundTop() - playerHeight
 	if bgm := FirstBGM(); bgm != nil {
 		bgm.SetVolume(0.3)
@@ -35,19 +35,11 @@ func (s *MainScene) Update(_ *flib.Game) error {
 		return fmt.Errorf("exit")
 	}
 
-	moveX := 0.0
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
-		moveX += playerSpeed
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
-		moveX -= playerSpeed
-	}
 	s.cameraX += autoScrollSpeed
-	s.playerX += autoScrollSpeed + moveX
-	s.playerX = clamp(s.playerX, s.cameraX, s.cameraX+ScreenWidth-playerWidth)
+	s.playerX = s.cameraX + playerScreenOffsetX
 
 	onGround := s.playerY >= groundTop()-playerHeight
-	if onGround && (inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW)) {
+	if onGround && isJumpInputJustPressed() {
 		s.playerVY = jumpVelocity
 		if se := FirstSE(); len(se) > 0 {
 			PlaySE(se)
@@ -72,19 +64,19 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	drawGround(screen, s.cameraX)
 	drawPlayer(screen, s.playerX-s.cameraX, s.playerY)
 
-	ebitenutil.DebugPrintAt(screen, "MOVE: <- -> / A D, JUMP: SPACE", 20, 20)
+	ebitenutil.DebugPrintAt(screen, "JUMP: TAP / CLICK / SPACE", 20, 20)
 	ebitenutil.DebugPrintAt(screen, "ESC: EXIT", 20, 42)
 }
 
 const (
-	groundH         = 360.0
-	playerWidth     = 70.0
-	playerHeight    = 96.0
-	playerSpeed     = 7.5
-	autoScrollSpeed = 4.0
-	gravity         = 1.1
-	jumpVelocity    = -21.0
-	groundTileW     = 96.0
+	groundH             = 360.0
+	playerWidth         = 70.0
+	playerHeight        = 96.0
+	autoScrollSpeed     = 4.0
+	gravity             = 1.1
+	jumpVelocity        = -21.0
+	groundTileW         = 96.0
+	playerScreenOffsetX = 160.0
 )
 
 func groundTop() float64 {
@@ -128,14 +120,11 @@ func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.C
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), c, true)
 }
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
+func isJumpInputJustPressed() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return true
 	}
-	if v > max {
-		return max
-	}
-	return v
+	return len(inpututil.AppendJustPressedTouchIDs(nil)) > 0
 }
 
 func (s *MainScene) GetStatus() int { return 0 }
