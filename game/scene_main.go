@@ -41,8 +41,9 @@ func (s *MainScene) Update(_ *flib.Game) error {
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 		moveX -= playerSpeed
 	}
-	s.playerX += moveX
-	s.playerX = clamp(s.playerX, 0, worldWidth-playerWidth)
+	s.cameraX += autoScrollSpeed
+	s.playerX += autoScrollSpeed + moveX
+	s.playerX = clamp(s.playerX, s.cameraX, s.cameraX+ScreenWidth-playerWidth)
 
 	onGround := s.playerY >= groundTop()-playerHeight
 	if onGround && (inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW)) {
@@ -60,8 +61,6 @@ func (s *MainScene) Update(_ *flib.Game) error {
 		s.playerVY = 0
 	}
 
-	targetCameraX := s.playerX - ScreenWidth*0.35
-	s.cameraX = clamp(targetCameraX, 0, worldWidth-ScreenWidth)
 	return nil
 }
 
@@ -77,14 +76,14 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 }
 
 const (
-	worldWidth   = 7200.0
-	groundH      = 360.0
-	playerWidth  = 70.0
-	playerHeight = 96.0
-	playerSpeed  = 7.5
-	gravity      = 1.1
-	jumpVelocity = -21.0
-	groundTileW  = 96.0
+	groundH         = 360.0
+	playerWidth     = 70.0
+	playerHeight    = 96.0
+	playerSpeed     = 7.5
+	autoScrollSpeed = 4.0
+	gravity         = 1.1
+	jumpVelocity    = -21.0
+	groundTileW     = 96.0
 )
 
 func groundTop() float64 {
@@ -92,12 +91,11 @@ func groundTop() float64 {
 }
 
 func drawClouds(screen *ebiten.Image, cameraX float64) {
-	for i := 0; i < 18; i++ {
-		worldX := float64(i)*420 + 60
-		screenX := worldX - cameraX*0.35
-		if screenX < -220 || screenX > ScreenWidth+220 {
-			continue
-		}
+	const cloudSpacing = 420.0
+	cloudCameraX := cameraX * 0.35
+	start := -math.Mod(cloudCameraX, cloudSpacing)
+	for x := start - cloudSpacing; x < ScreenWidth+cloudSpacing; x += cloudSpacing {
+		screenX := x + 60
 		ebitenutil.DrawRect(screen, screenX, 140, 180, 54, color.RGBA{255, 255, 255, 255})
 		ebitenutil.DrawRect(screen, screenX+18, 116, 132, 34, color.RGBA{255, 255, 255, 255})
 	}
