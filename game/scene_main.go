@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/ichibankunio/flib"
 )
 
@@ -96,13 +97,13 @@ func drawClouds(screen *ebiten.Image, cameraX float64) {
 	start := -math.Mod(cloudCameraX, cloudSpacing)
 	for x := start - cloudSpacing; x < ScreenWidth+cloudSpacing; x += cloudSpacing {
 		screenX := x + 60
-		ebitenutil.DrawRect(screen, screenX, 140, 180, 54, color.RGBA{255, 255, 255, 255})
-		ebitenutil.DrawRect(screen, screenX+18, 116, 132, 34, color.RGBA{255, 255, 255, 255})
+		drawFilledRect(screen, screenX, 140, 180, 54, color.RGBA{255, 255, 255, 255})
+		drawFilledRect(screen, screenX+18, 116, 132, 34, color.RGBA{255, 255, 255, 255})
 	}
 }
 
 func drawGround(screen *ebiten.Image, cameraX float64) {
-	ebitenutil.DrawRect(screen, 0, groundTop()-16, ScreenWidth, 16, color.RGBA{R: 225, G: 167, B: 98, A: 255})
+	drawFilledRect(screen, 0, groundTop()-16, ScreenWidth, 16, color.RGBA{R: 225, G: 167, B: 98, A: 255})
 	start := -math.Mod(cameraX, groundTileW)
 	for x := start - groundTileW; x < ScreenWidth+groundTileW; x += groundTileW {
 		tile := int((cameraX + x) / groundTileW)
@@ -110,17 +111,21 @@ func drawGround(screen *ebiten.Image, cameraX float64) {
 		if tile%2 == 0 {
 			fill = color.RGBA{R: 177, G: 103, B: 49, A: 255}
 		}
-		ebitenutil.DrawRect(screen, x, groundTop(), groundTileW, groundH, fill)
-		ebitenutil.DrawRect(screen, x+8, groundTop()+8, 16, 16, color.RGBA{R: 227, G: 183, B: 129, A: 255})
+		drawFilledRect(screen, x, groundTop(), groundTileW, groundH, fill)
+		drawFilledRect(screen, x+8, groundTop()+8, 16, 16, color.RGBA{R: 227, G: 183, B: 129, A: 255})
 	}
 }
 
 func drawPlayer(screen *ebiten.Image, x, y float64) {
-	ebitenutil.DrawRect(screen, x, y, playerWidth, playerHeight, color.RGBA{R: 228, G: 87, B: 64, A: 255})
-	ebitenutil.DrawRect(screen, x, y, playerWidth, 24, color.RGBA{R: 185, G: 34, B: 28, A: 255})
-	ebitenutil.DrawRect(screen, x+18, y+26, 34, 36, color.RGBA{R: 255, G: 218, B: 174, A: 255})
-	ebitenutil.DrawRect(screen, x+8, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
-	ebitenutil.DrawRect(screen, x+42, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
+	drawFilledRect(screen, x, y, playerWidth, playerHeight, color.RGBA{R: 228, G: 87, B: 64, A: 255})
+	drawFilledRect(screen, x, y, playerWidth, 24, color.RGBA{R: 185, G: 34, B: 28, A: 255})
+	drawFilledRect(screen, x+18, y+26, 34, 36, color.RGBA{R: 255, G: 218, B: 174, A: 255})
+	drawFilledRect(screen, x+8, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
+	drawFilledRect(screen, x+42, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
+}
+
+func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
+	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), c, true)
 }
 
 func clamp(v, min, max float64) float64 {
