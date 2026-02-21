@@ -101,7 +101,7 @@ const (
 	playerHeight        = 96.0
 	autoScrollSpeed     = 4.0
 	gravity             = 1.1
-	jumpVelocity        = -21.0
+	jumpVelocity        = -29.7
 	groundTileW         = 96.0
 	playerScreenOffsetX = 160.0
 	obstacleMinGap      = 360.0
