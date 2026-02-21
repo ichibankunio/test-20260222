@@ -17,7 +17,9 @@ const (
 )
 
 const (
-	SceneMain flib.SceneID = iota
+	SceneTitle flib.SceneID = iota
+	SceneMain
+	SceneResult
 )
 
 type Game struct {
@@ -25,7 +27,10 @@ type Game struct {
 }
 
 func (g *Game) Init() {
+	g.FlibGame.State = SceneTitle
 	g.FlibGame.AddScene(&MainScene{})
+	g.FlibGame.AddScene(&TitleScene{})
+	g.FlibGame.AddScene(&ResultScene{})
 }
 
 var once sync.Once

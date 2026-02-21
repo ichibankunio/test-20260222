@@ -168,6 +168,19 @@ func FirstBGM() *audio.Player {
 	return assetBGM[0]
 }
 
+func EnsureBGMPlaying() {
+	p := FirstBGM()
+	if p == nil {
+		return
+	}
+	p.SetVolume(0.3)
+	if p.IsPlaying() {
+		return
+	}
+	p.Rewind()
+	p.Play()
+}
+
 func PlaySE(b []byte) {
 	s, err := mp3.DecodeWithSampleRate(SampleRate, bytes.NewReader(b))
 	if err != nil {
