@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	ebiten.SetWindowSize(540, 960)
+	ebiten.SetWindowSize(432, 768)
 	ebiten.SetWindowTitle("test-20260222")
 
 	mainGame := &game.Game{

@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	// Portrait 16:9 (HD)
-	ScreenWidth  = 1080
-	ScreenHeight = 1920
+	// Portrait 9:16 (low-res)
+	ScreenWidth  = 144
+	ScreenHeight = 256
 	SampleRate   = 44100
 )
 
