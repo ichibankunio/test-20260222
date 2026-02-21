@@ -80,7 +80,7 @@ func (s *MainScene) Update(_ *flib.Game) error {
 }
 
 func (s *MainScene) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{R: 92, G: 148, B: 252, A: 255})
+	screen.Fill(gbLightest)
 
 	drawClouds(screen, s.cameraX)
 	drawGround(screen, s.cameraX)
@@ -94,6 +94,13 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, "TAP / CLICK / SPACE TO RESTART", 20, 106)
 	}
 }
+
+var (
+	gbDarkest  = color.RGBA{R: 15, G: 56, B: 15, A: 255}
+	gbDark     = color.RGBA{R: 48, G: 98, B: 48, A: 255}
+	gbLight    = color.RGBA{R: 139, G: 172, B: 15, A: 255}
+	gbLightest = color.RGBA{R: 155, G: 188, B: 15, A: 255}
+)
 
 const (
 	groundH             = 360.0
@@ -118,39 +125,39 @@ func drawClouds(screen *ebiten.Image, cameraX float64) {
 	start := -math.Mod(cloudCameraX, cloudSpacing)
 	for x := start - cloudSpacing; x < ScreenWidth+cloudSpacing; x += cloudSpacing {
 		screenX := x + 60
-		drawFilledRect(screen, screenX, 140, 180, 54, color.RGBA{255, 255, 255, 255})
-		drawFilledRect(screen, screenX+18, 116, 132, 34, color.RGBA{255, 255, 255, 255})
+		drawFilledRect(screen, screenX, 140, 180, 54, gbLight)
+		drawFilledRect(screen, screenX+18, 116, 132, 34, gbLight)
 	}
 }
 
 func drawGround(screen *ebiten.Image, cameraX float64) {
-	drawFilledRect(screen, 0, groundTop()-16, ScreenWidth, 16, color.RGBA{R: 225, G: 167, B: 98, A: 255})
+	drawFilledRect(screen, 0, groundTop()-16, ScreenWidth, 16, gbLight)
 	start := -math.Mod(cameraX, groundTileW)
 	for x := start - groundTileW; x < ScreenWidth+groundTileW; x += groundTileW {
 		tile := int((cameraX + x) / groundTileW)
-		fill := color.RGBA{R: 188, G: 111, B: 52, A: 255}
+		fill := gbDark
 		if tile%2 == 0 {
-			fill = color.RGBA{R: 177, G: 103, B: 49, A: 255}
+			fill = gbDarkest
 		}
 		drawFilledRect(screen, x, groundTop(), groundTileW, groundH, fill)
-		drawFilledRect(screen, x+8, groundTop()+8, 16, 16, color.RGBA{R: 227, G: 183, B: 129, A: 255})
+		drawFilledRect(screen, x+8, groundTop()+8, 16, 16, gbLightest)
 	}
 }
 
 func drawPlayer(screen *ebiten.Image, x, y float64) {
-	drawFilledRect(screen, x, y, playerWidth, playerHeight, color.RGBA{R: 228, G: 87, B: 64, A: 255})
-	drawFilledRect(screen, x, y, playerWidth, 24, color.RGBA{R: 185, G: 34, B: 28, A: 255})
-	drawFilledRect(screen, x+18, y+26, 34, 36, color.RGBA{R: 255, G: 218, B: 174, A: 255})
-	drawFilledRect(screen, x+8, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
-	drawFilledRect(screen, x+42, y+66, 20, 30, color.RGBA{R: 95, G: 118, B: 210, A: 255})
+	drawFilledRect(screen, x, y, playerWidth, playerHeight, gbDark)
+	drawFilledRect(screen, x, y, playerWidth, 24, gbDarkest)
+	drawFilledRect(screen, x+18, y+26, 34, 36, gbLightest)
+	drawFilledRect(screen, x+8, y+66, 20, 30, gbLight)
+	drawFilledRect(screen, x+42, y+66, 20, 30, gbLight)
 }
 
 func drawObstacles(screen *ebiten.Image, cameraX float64, obstacles []obstacle) {
 	for _, o := range obstacles {
 		x := o.x - cameraX
 		y := groundTop() - o.height
-		drawFilledRect(screen, x, y, o.width, o.height, color.RGBA{R: 42, G: 64, B: 92, A: 255})
-		drawFilledRect(screen, x+6, y+6, o.width-12, 16, color.RGBA{R: 86, G: 111, B: 148, A: 255})
+		drawFilledRect(screen, x, y, o.width, o.height, gbDarkest)
+		drawFilledRect(screen, x+6, y+6, o.width-12, 16, gbDark)
 	}
 }
 

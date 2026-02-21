@@ -10,6 +10,7 @@
 - 画面下部テキストに `hello codex!!!` 表示
 - SE/BGMロード: `game/assets/se`, `game/assets/bgm`
 - JSONロード: `game/assets/data`
+- ゲーム画面の配色はゲームボーイ風8bitパレット
 
 ## Run
 
