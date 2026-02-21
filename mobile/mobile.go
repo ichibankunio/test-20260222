@@ -3,7 +3,7 @@ package mobile
 import (
 	"github.com/hajimehoshi/ebiten/v2/mobile"
 	"github.com/ichibankunio/flib"
-	"github.com/ichibankunio/mobile-game-template/game"
+	"github.com/ichibankunio/test-20260222/game"
 )
 
 var mainGame *game.Game

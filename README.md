@@ -1,4 +1,4 @@
-# mobile-game-template
+# test-20260222
 
 `flib` のシーンベース構成で、スマホ向け縦持ち 16:9 (720x1280) の最小テンプレートです。
 
@@ -134,14 +134,14 @@ POLL_INTERVAL=60 TRIGGER_PREFIX=@codex ./scripts/pr_worker.sh
 
 ### macOS launchd (optional)
 
-1. Copy `scripts/launchd/com.ichibankunio.mobile-game-template.issue-worker.plist`
+1. Copy `scripts/launchd/com.ichibankunio.test-20260222.issue-worker.plist`
    to `~/Library/LaunchAgents/`
 2. Replace `__REPO_PATH__` with your local repository path
 3. Load service:
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.ichibankunio.mobile-game-template.issue-worker.plist 2>/dev/null || true
-launchctl load ~/Library/LaunchAgents/com.ichibankunio.mobile-game-template.issue-worker.plist
+launchctl unload ~/Library/LaunchAgents/com.ichibankunio.test-20260222.issue-worker.plist 2>/dev/null || true
+launchctl load ~/Library/LaunchAgents/com.ichibankunio.test-20260222.issue-worker.plist
 ```
 
 ## Mobile binding
@@ -149,5 +149,5 @@ launchctl load ~/Library/LaunchAgents/com.ichibankunio.mobile-game-template.issu
 ```bash
 ebitenmobile bind -v -target ios -o ./ios/Mobile.xcframework ./mobile
 # or
-# ebitenmobile bind -v -target android -javapkg com.example.mobilegametemplate -o ./android/mobile-game-template.aar ./mobile
+# ebitenmobile bind -v -target android -javapkg com.example.mobilegametemplate -o ./android/test-20260222.aar ./mobile
 ```

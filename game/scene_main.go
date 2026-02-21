@@ -49,7 +49,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 		_ = h
 	}
 
-	ebitenutil.DebugPrintAt(screen, "Hello, mobile-game-template", 40, 420)
+	ebitenutil.DebugPrintAt(screen, "Hello, test-20260222", 40, 420)
 	ebitenutil.DebugPrintAt(screen, "hello codex!!!", 40, 440)
 	ebitenutil.DebugPrintAt(screen, "Assets ready: image / font / json / audio", 40, 460)
 	ebitenutil.DebugPrintAt(screen, "Press SPACE for SE, ESC to exit", 40, 500)

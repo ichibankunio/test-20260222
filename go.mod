@@ -1,4 +1,4 @@
-module github.com/ichibankunio/mobile-game-template
+module github.com/ichibankunio/test-20260222
 
 go 1.23.0
 

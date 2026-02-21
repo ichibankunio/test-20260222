@@ -5,12 +5,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/ichibankunio/flib"
-	gamepkg "github.com/ichibankunio/mobile-game-template/game"
+	gamepkg "github.com/ichibankunio/test-20260222/game"
 )
 
 func main() {
 	ebiten.SetWindowSize(540, 960)
-	ebiten.SetWindowTitle("mobile-game-template")
+	ebiten.SetWindowTitle("test-20260222")
 
 	mainGame := &gamepkg.Game{
 		FlibGame: &flib.Game{

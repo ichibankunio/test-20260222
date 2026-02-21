@@ -3,7 +3,7 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.ichibankunio.mobile-game-template.issue-worker</string>
+    <string>com.ichibankunio.test-20260222.issue-worker</string>
 
     <key>ProgramArguments</key>
     <array>
