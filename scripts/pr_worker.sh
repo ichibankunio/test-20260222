@@ -64,6 +64,11 @@ run_codex_for_comment() {
   response_file="${tmp_dir}/response.txt"
   log_file="${LOG_DIR}/pr-${pr_number}-comment-${comment_id}-$(date +%Y%m%d%H%M%S).log"
 
+  if [[ "${mode}" == "apply" && "${head_branch}" == "${BASE_BRANCH}" ]]; then
+    gh pr comment "${pr_number}" --repo "${REPO}" --body "Safety stop: this PR head branch is \`${BASE_BRANCH}\`. Auto-commit is disabled to avoid direct commits to base branch."
+    return 0
+  fi
+
   cat >"${prompt_file}" <<EOF
 You are working in repository ${REPO}.
 A new PR comment requires action.
@@ -120,6 +125,11 @@ EOF
       else
         git checkout -b "${head_branch}" "origin/${head_branch}" 2>/dev/null || git checkout -B "${head_branch}"
       fi
+    fi
+    if [[ "$(git branch --show-current)" == "${BASE_BRANCH}" ]]; then
+      gh pr comment "${pr_number}" --repo "${REPO}" --body "Safety stop: detected pending changes on \`${BASE_BRANCH}\`. No commit was created. Please clean up local branch state, then retry."
+      git checkout "${BASE_BRANCH}" >/dev/null 2>&1 || true
+      return 0
     fi
     git add -A
     git commit -m "fix: address PR #${pr_number} comment #${comment_id}"
