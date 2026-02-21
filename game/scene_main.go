@@ -83,7 +83,7 @@ const (
 	playerSpeed     = 7.5
 	autoScrollSpeed = 4.0
 	gravity         = 1.1
-	jumpVelocity    = -21.0
+	jumpVelocity    = -29.7
 	groundTileW     = 96.0
 )
 
