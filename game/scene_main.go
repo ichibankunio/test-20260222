@@ -217,12 +217,14 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	gaugeX := innerX + levelBoxSize
 	gaugeW := innerW - levelBoxSize - nextBoxW
 
-	drawGaugeShell(screen, outerX, outerY, outerW, outerH, outerLevelBoxSize, uiBorder)
-	drawGaugeShell(screen, innerX, innerY, innerW, innerH, levelBoxSize, color.RGBA{R: 16, G: 22, B: 30, A: 255})
+	drawGaugeShell(screen, outerX, outerY, outerW, outerH, outerLevelBoxSize, nextBoxW+border*2, 0.56, uiBorder)
+	drawGaugeShell(screen, innerX, innerY, innerW, innerH, levelBoxSize, nextBoxW, 0.56, color.RGBA{R: 16, G: 22, B: 30, A: 255})
 
 	fillW := gaugeW * clamp(rate, 0, 1)
 	if fillW > 0 {
-		drawFilledRect(screen, gaugeX, innerY, fillW, innerH, coinMain)
+		pipeH := innerH * 0.56
+		pipeY := innerY + (innerH-pipeH)/2
+		drawFilledRect(screen, gaugeX, pipeY, fillW, pipeH, coinMain)
 	}
 
 	levelText := fmt.Sprintf("%d", level)
@@ -236,7 +238,7 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	ebitenutil.DebugPrintAt(screen, nextLevelText, nextLevelTextX, textY)
 }
 
-func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth float64, c color.Color) {
+func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth, nextBoxWidth, centerRate float64, c color.Color) {
 	if width <= 0 || height <= 0 {
 		return
 	}
@@ -245,11 +247,17 @@ func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth flo
 		drawCapsule(screen, x, y, width, height, c)
 		return
 	}
+	nextW := clamp(nextBoxWidth, 0, width-levelW)
+	centerW := width - levelW - nextW
+	centerH := clamp(height*centerRate, 1, height)
+	centerY := y + (height-centerH)/2
+
 	drawRoundedRect(screen, x, y, levelW, height, 3.0, c)
-	capsuleX := x + levelW - height/2
-	capsuleW := width - (levelW - height/2)
-	if capsuleW > 0 {
-		drawCapsule(screen, capsuleX, y, capsuleW, height, c)
+	if nextW > 0 {
+		drawRoundedRect(screen, x+width-nextW, y, nextW, height, 3.0, c)
+	}
+	if centerW > 0 {
+		drawCapsule(screen, x+levelW, centerY, centerW, centerH, c)
 	}
 }
 
