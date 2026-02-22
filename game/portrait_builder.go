@@ -21,6 +21,9 @@ type portraitShard struct {
 	vx          float64
 	vy          float64
 	col         color.RGBA
+	marbleCol   color.RGBA
+	marbleDX    float64
+	marbleDY    float64
 	life        int
 	targetIndex int
 }
@@ -123,6 +126,7 @@ func (p *portraitBuilder) onCoinCollected(x, y float64) {
 		}
 		targetPoolIdx := rand.IntN(len(p.unfilled))
 		targetIdx := p.unfilled[targetPoolIdx]
+		marbleIdx := rand.IntN(len(p.pixels))
 		ang := rand.Float64() * 2 * math.Pi
 		spd := 0.35 + rand.Float64()*1.9
 		shard := portraitShard{
@@ -131,6 +135,9 @@ func (p *portraitBuilder) onCoinCollected(x, y float64) {
 			vx:          math.Cos(ang) * spd,
 			vy:          math.Sin(ang)*spd - 0.2,
 			col:         p.pixels[targetIdx].col,
+			marbleCol:   p.pixels[marbleIdx].col,
+			marbleDX:    rand.Float64() * 0.8,
+			marbleDY:    rand.Float64() * 0.8,
 			life:        110 + rand.IntN(40),
 			targetIndex: targetIdx,
 		}
@@ -196,6 +203,7 @@ func (p *portraitBuilder) draw(screen *ebiten.Image) {
 	}
 	for _, shard := range p.shards {
 		drawFilledRect(screen, shard.x, shard.y, 1.8, 1.8, shard.col)
+		drawFilledRect(screen, shard.x+shard.marbleDX, shard.y+shard.marbleDY, 0.9, 0.9, shard.marbleCol)
 	}
 }
 
