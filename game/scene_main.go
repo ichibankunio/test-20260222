@@ -318,24 +318,19 @@ func drawGaugeShellPath(screen *ebiten.Image, x, y, width, height, levelW, nextW
 	p.Arc(float32(left+leftR), float32(top+leftR), float32(leftR), float32(math.Pi), float32(3*math.Pi/2), vector.CounterClockwise)
 	p.Close()
 
-	vs, is := p.AppendVerticesAndIndicesForFilling(nil, nil)
-	if len(vs) == 0 || len(is) == 0 {
-		return
+	fillOp := &vector.DrawPathOptions{AntiAlias: true}
+	fillOp.ColorScale.ScaleWithColor(c)
+	vector.FillPath(screen, &p, nil, fillOp)
+
+	strokeOp := &vector.StrokeOptions{
+		Width:      1,
+		LineJoin:   vector.LineJoinRound,
+		LineCap:    vector.LineCapRound,
+		MiterLimit: 10,
 	}
-	r, g, b, a := c.RGBA()
-	fr := float32(r) / 0xffff
-	fg := float32(g) / 0xffff
-	fb := float32(b) / 0xffff
-	fa := float32(a) / 0xffff
-	for i := range vs {
-		vs[i].SrcX = 1
-		vs[i].SrcY = 1
-		vs[i].ColorR = fr
-		vs[i].ColorG = fg
-		vs[i].ColorB = fb
-		vs[i].ColorA = fa
-	}
-	screen.DrawTriangles(vs, is, whitePixelImage, nil)
+	outlineOp := &vector.DrawPathOptions{AntiAlias: true}
+	outlineOp.ColorScale.ScaleWithColor(c)
+	vector.StrokePath(screen, &p, strokeOp, outlineOp)
 }
 
 func drawCapsule(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
@@ -406,12 +401,6 @@ func drawCoins(screen *ebiten.Image, coins []projectile) {
 func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), c, true)
 }
-
-var whitePixelImage = func() *ebiten.Image {
-	img := ebiten.NewImage(3, 3)
-	img.Fill(color.White)
-	return img
-}()
 
 func circlesOverlap(ax, ay, ar, bx, by, br float64) bool {
 	dx := ax - bx

@@ -1,11 +1,11 @@
 module github.com/ichibankunio/test-20260222
 
-go 1.23.0
+go 1.24.0
 
-toolchain go1.23.7
+toolchain go1.24.0
 
 require (
-	github.com/hajimehoshi/ebiten/v2 v2.8.6
+	github.com/hajimehoshi/ebiten/v2 v2.9.7
 	github.com/ichibankunio/flib v1.2.1
 )
 
