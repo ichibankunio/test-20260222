@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -18,31 +17,17 @@ package main
 
 var InnerColor vec4
 
-func blend(a vec3, b vec3, t float) vec3 {
-	return a*(1.0-t) + b*t
-}
-
 func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
-	dist := length(srcPos)
-	if dist >= 1.0 {
+	dist2 := dot(srcPos, srcPos)
+	if dist2 > 1.0 {
 		return vec4(0)
 	}
 
-	innerRadius := custom.x
-	heat := custom.y
-	homing := custom.z
-	life := custom.w
-
-	edge := clamp((1.0-dist)*4.0, 0.0, 1.0)
-	core := clamp((innerRadius-dist)/(innerRadius+0.0001), 0.0, 1.0)
-	ring := clamp((1.0-dist)/(1.0-innerRadius+0.0001), 0.0, 1.0)
-	accentMix := clamp(heat*0.55+homing*0.35+life*0.10, 0.0, 1.0)
-
-	outer := color.rgb
-	inner := blend(InnerColor.rgb, vec3(1.0, 0.96, 0.96), accentMix*0.35)
-	col := blend(outer, inner, ring*0.28+core*0.72)
-	alpha := edge
-	return vec4(col*alpha, alpha)
+	innerRadius2 := custom.x
+	if dist2 <= innerRadius2 {
+		return InnerColor
+	}
+	return color
 }
 `
 
@@ -67,6 +52,7 @@ func (r *bulletShaderRenderer) init() {
 	r.op.Uniforms = map[string]any{
 		"InnerColor": []float32{ic[0], ic[1], ic[2], ic[3]},
 	}
+	r.op.AntiAlias = false
 }
 
 func (r *bulletShaderRenderer) draw(screen *ebiten.Image, bullets []projectile) bool {
@@ -109,20 +95,13 @@ func (r *bulletShaderRenderer) drawBatch(screen *ebiten.Image, bullets []project
 		ii := i * 6
 		cx := float32(b.x)
 		cy := float32(b.y)
-		half := float32(b.radius) + 0.8
-		innerRadius := float32(0.42 + clamp(b.homing*4.0, 0, 0.16))
-		speed := float32(math.Hypot(b.vx, b.vy))
-		heat := float32(clamp(float64(speed)/4.2, 0, 1))
-		homing := float32(clamp(b.homing*25.0, 0, 1))
-		life := float32(0)
-		if b.life > 0 {
-			life = float32(clamp(float64(b.life)/180.0, 0, 1))
-		}
+		half := float32(b.radius)
+		innerRadius2 := float32(0.38 * 0.38)
 
-		r.vertices[vi+0] = bulletVertex(cx-half, cy-half, -1, -1, outer, innerRadius, heat, homing, life)
-		r.vertices[vi+1] = bulletVertex(cx+half, cy-half, +1, -1, outer, innerRadius, heat, homing, life)
-		r.vertices[vi+2] = bulletVertex(cx-half, cy+half, -1, +1, outer, innerRadius, heat, homing, life)
-		r.vertices[vi+3] = bulletVertex(cx+half, cy+half, +1, +1, outer, innerRadius, heat, homing, life)
+		r.vertices[vi+0] = bulletVertex(cx-half, cy-half, -1, -1, outer, innerRadius2)
+		r.vertices[vi+1] = bulletVertex(cx+half, cy-half, +1, -1, outer, innerRadius2)
+		r.vertices[vi+2] = bulletVertex(cx-half, cy+half, -1, +1, outer, innerRadius2)
+		r.vertices[vi+3] = bulletVertex(cx+half, cy+half, +1, +1, outer, innerRadius2)
 
 		base := uint16(vi)
 		r.indices[ii+0] = base + 0
@@ -136,7 +115,7 @@ func (r *bulletShaderRenderer) drawBatch(screen *ebiten.Image, bullets []project
 	screen.DrawTrianglesShader(r.vertices, r.indices, r.shader, &r.op)
 }
 
-func bulletVertex(dstX, dstY, srcX, srcY float32, outer [4]float32, innerRadius, heat, homing, life float32) ebiten.Vertex {
+func bulletVertex(dstX, dstY, srcX, srcY float32, outer [4]float32, innerRadius2 float32) ebiten.Vertex {
 	return ebiten.Vertex{
 		DstX:    dstX,
 		DstY:    dstY,
@@ -146,10 +125,7 @@ func bulletVertex(dstX, dstY, srcX, srcY float32, outer [4]float32, innerRadius,
 		ColorG:  outer[1],
 		ColorB:  outer[2],
 		ColorA:  outer[3],
-		Custom0: innerRadius,
-		Custom1: heat,
-		Custom2: homing,
-		Custom3: life,
+		Custom0: innerRadius2,
 	}
 }
 
