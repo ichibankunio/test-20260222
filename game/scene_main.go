@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -251,6 +252,10 @@ func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth, ne
 	centerW := width - levelW - nextW
 	centerH := clamp(height*centerRate, 1, height)
 	centerY := y + (height-centerH)/2
+	if centerW > centerH && nextW > 0 {
+		drawGaugeShellPath(screen, x, y, width, height, levelW, nextW, centerY, centerH, c)
+		return
+	}
 
 	drawRoundedRect(screen, x, y, levelW, height, 3.0, c)
 	if nextW > 0 {
@@ -259,6 +264,64 @@ func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth, ne
 	if centerW > 0 {
 		drawCapsule(screen, x+levelW, centerY, centerW, centerH, c)
 	}
+}
+
+func drawGaugeShellPath(screen *ebiten.Image, x, y, width, height, levelW, nextW, centerY, centerH float64, c color.Color) {
+	left := x
+	top := y
+	right := x + width
+	bottom := y + height
+	leftJoin := x + levelW
+	rightJoin := right - nextW
+	pipeR := centerH / 2
+	pipeMidY := centerY + pipeR
+	pipeTop := centerY
+	pipeBottom := centerY + centerH
+	leftR := clamp(3.0, 0, min(levelW, height)/2)
+	rightR := clamp(3.0, 0, min(nextW, height)/2)
+
+	var p vector.Path
+	p.MoveTo(float32(left+leftR), float32(top))
+	p.LineTo(float32(leftJoin), float32(top))
+	p.LineTo(float32(leftJoin), float32(pipeMidY))
+	p.Arc(float32(leftJoin+pipeR), float32(pipeMidY), float32(pipeR), float32(math.Pi), float32(-math.Pi/2), vector.CounterClockwise)
+	p.LineTo(float32(rightJoin-pipeR), float32(pipeTop))
+	p.Arc(float32(rightJoin-pipeR), float32(pipeMidY), float32(pipeR), float32(-math.Pi/2), 0, vector.Clockwise)
+	p.LineTo(float32(rightJoin), float32(top))
+	p.LineTo(float32(right-rightR), float32(top))
+	p.Arc(float32(right-rightR), float32(top+rightR), float32(rightR), float32(-math.Pi/2), 0, vector.Clockwise)
+	p.LineTo(float32(right), float32(bottom-rightR))
+	p.Arc(float32(right-rightR), float32(bottom-rightR), float32(rightR), 0, float32(math.Pi/2), vector.Clockwise)
+	p.LineTo(float32(rightJoin), float32(bottom))
+	p.LineTo(float32(rightJoin), float32(pipeMidY))
+	p.Arc(float32(rightJoin-pipeR), float32(pipeMidY), float32(pipeR), 0, float32(math.Pi/2), vector.Clockwise)
+	p.LineTo(float32(leftJoin+pipeR), float32(pipeBottom))
+	p.Arc(float32(leftJoin+pipeR), float32(pipeMidY), float32(pipeR), float32(math.Pi/2), float32(math.Pi), vector.Clockwise)
+	p.LineTo(float32(leftJoin), float32(bottom))
+	p.LineTo(float32(left+leftR), float32(bottom))
+	p.Arc(float32(left+leftR), float32(bottom-leftR), float32(leftR), float32(math.Pi/2), float32(math.Pi), vector.Clockwise)
+	p.LineTo(float32(left), float32(top+leftR))
+	p.Arc(float32(left+leftR), float32(top+leftR), float32(leftR), float32(math.Pi), float32(3*math.Pi/2), vector.Clockwise)
+	p.Close()
+
+	vs, is := p.AppendVerticesAndIndicesForFilling(nil, nil)
+	if len(vs) == 0 || len(is) == 0 {
+		return
+	}
+	r, g, b, a := c.RGBA()
+	fr := float32(r) / 0xffff
+	fg := float32(g) / 0xffff
+	fb := float32(b) / 0xffff
+	fa := float32(a) / 0xffff
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = fr
+		vs[i].ColorG = fg
+		vs[i].ColorB = fb
+		vs[i].ColorA = fa
+	}
+	screen.DrawTriangles(vs, is, whitePixelImage, nil)
 }
 
 func drawCapsule(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
@@ -329,6 +392,12 @@ func drawCoins(screen *ebiten.Image, coins []projectile) {
 func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), c, true)
 }
+
+var whitePixelImage = func() *ebiten.Image {
+	img := ebiten.NewImage(3, 3)
+	img.Fill(color.White)
+	return img
+}()
 
 func circlesOverlap(ax, ay, ar, bx, by, br float64) bool {
 	dx := ax - bx
