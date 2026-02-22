@@ -40,7 +40,7 @@ IMAGE_DIR="${TMP_DIR}/images"
 STATE_DIR="${STATE_DIR:-$(pwd)/.codex-worker}"
 QUESTION_STATE_DIR="${STATE_DIR}/issue-questions"
 QUESTION_STATE_FILE="${QUESTION_STATE_DIR}/${ISSUE_NUMBER}.json"
-CODEX_IMAGE_ARGS=()
+declare -a CODEX_IMAGE_ARGS=()
 
 cleanup() {
   rm -rf "${TMP_DIR}"
@@ -103,7 +103,11 @@ collect_issue_images() {
 run_codex_exec() {
   local output_file="$1"
   local prompt_file="$2"
-  codex exec --full-auto -C "$(pwd)" -o "${output_file}" "${CODEX_IMAGE_ARGS[@]}" - < "${prompt_file}"
+  if [[ ${#CODEX_IMAGE_ARGS[@]} -gt 0 ]]; then
+    codex exec --full-auto -C "$(pwd)" -o "${output_file}" "${CODEX_IMAGE_ARGS[@]}" - < "${prompt_file}"
+  else
+    codex exec --full-auto -C "$(pwd)" -o "${output_file}" - < "${prompt_file}"
+  fi
 }
 
 collect_issue_images
