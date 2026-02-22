@@ -80,6 +80,7 @@ func loadFonts() {
 		log.Fatal(err)
 	}
 	assetGoTextFaces[16] = &text.GoTextFace{Source: src, Size: 16}
+	assetGoTextFaces[12] = &text.GoTextFace{Source: src, Size: 12}
 	assetGoTextFaces[28] = &text.GoTextFace{Source: src, Size: 28}
 }
 

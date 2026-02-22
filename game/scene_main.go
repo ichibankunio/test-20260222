@@ -5,8 +5,8 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/ichibankunio/flib"
 )
@@ -78,12 +78,12 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 		s.danmaku.Draw(screen)
 	}
 
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
-	ebitenutil.DebugPrintAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
-	ebitenutil.DebugPrintAt(screen, "ESC: EXIT", 4, 28)
+	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
+	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
+	drawUITextAt(screen, "ESC: EXIT", 4, 28)
 	if s.gameOver {
-		ebitenutil.DebugPrintAt(screen, "GAME OVER", 42, 114)
-		ebitenutil.DebugPrintAt(screen, "TAP/SPACE: RETRY", 26, 128)
+		drawUITextCentered(screen, "GAME OVER", 0, 112, ScreenWidth, 12, 16)
+		drawUITextCentered(screen, "TAP/SPACE: RETRY", 0, 128, ScreenWidth, 12, 12)
 	}
 }
 
@@ -241,16 +241,24 @@ func drawGauge(screen *ebiten.Image, rate float64, stage int) {
 	frameStroke.LineJoin = vector.LineJoinRound
 	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
 
-	drawCenteredDebugText(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH))
-	drawCenteredDebugText(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH))
+	drawUITextCentered(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH), 16)
+	drawUITextCentered(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH), 16)
 }
 
-func drawCenteredDebugText(screen *ebiten.Image, text string, x, y, w, h int) {
-	textW := len(text) * 6
-	textH := 8
-	tx := x + (w-textW)/2
-	ty := y + (h-textH)/2
-	ebitenutil.DebugPrintAt(screen, text, tx, ty)
+func drawUITextAt(screen *ebiten.Image, body string, x, y int) {
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorScale.ScaleWithColor(uiBorder)
+	text.Draw(screen, body, GetGoTextFace(12), op)
+}
+
+func drawUITextCentered(screen *ebiten.Image, body string, x, y, w, h, size int) {
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(x+w/2), float64(y+h/2))
+	op.LayoutOptions.PrimaryAlign = text.AlignCenter
+	op.LayoutOptions.SecondaryAlign = text.AlignCenter
+	op.ColorScale.ScaleWithColor(uiBorder)
+	text.Draw(screen, body, GetGoTextFace(size), op)
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
