@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -26,6 +27,9 @@ type MainScene struct {
 	mouseActive  bool
 	lastMouseX   float64
 	lastMouseY   float64
+	stageLabel   string
+	nextLabel    string
+	stageHUD     string
 }
 
 func (s *MainScene) Init(_ *flib.Game) {
@@ -72,13 +76,13 @@ func (s *MainScene) Update(_ *flib.Game) error {
 func (s *MainScene) Draw(screen *ebiten.Image) {
 	screen.Fill(bgNight)
 	drawBackdrop(screen)
-	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
+	drawGauge(screen, s.gauge/stageGaugeMax, s.stageLabel, s.nextLabel)
 	drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
 	if s.danmaku != nil {
 		s.danmaku.Draw(screen)
 	}
 
-	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
+	drawUITextAt(screen, s.stageHUD, 4, 4)
 	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
 	drawUITextAt(screen, "ESC: EXIT", 4, 28)
 	if s.gameOver {
@@ -126,6 +130,9 @@ func (s *MainScene) retryStage() {
 func (s *MainScene) startStage() {
 	s.gauge = 0
 	s.danmaku = newDanmakuForStage(s.stage)
+	s.stageLabel = fmt.Sprintf("%d", s.stage)
+	s.nextLabel = fmt.Sprintf("%d", s.stage+1)
+	s.stageHUD = fmt.Sprintf("STAGE %d", s.stage)
 }
 
 func (s *MainScene) updatePlayerFromSwipe() {
@@ -198,7 +205,7 @@ func drawBackdrop(screen *ebiten.Image) {
 	}
 }
 
-func drawGauge(screen *ebiten.Image, rate float64, stage int) {
+func drawGauge(screen *ebiten.Image, rate float64, stageLabel, nextLabel string) {
 	leftX := 8.0
 	topY := 38.0
 	boxW := 44.0
@@ -241,24 +248,56 @@ func drawGauge(screen *ebiten.Image, rate float64, stage int) {
 	frameStroke.LineJoin = vector.LineJoinRound
 	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
 
-	drawUITextCentered(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH), 16)
-	drawUITextCentered(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH), 16)
+	drawUITextCentered(screen, stageLabel, int(leftX), int(topY), int(boxW), int(boxH), 16)
+	drawUITextCentered(screen, nextLabel, int(rightX), int(topY), int(boxW), int(boxH), 16)
 }
 
 func drawUITextAt(screen *ebiten.Image, body string, x, y int) {
-	op := &text.DrawOptions{}
+	cached := getCachedUIText(body, 12)
+	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorScale.ScaleWithColor(uiBorder)
-	text.Draw(screen, body, GetGoTextFace(12), op)
+	screen.DrawImage(cached.img, op)
 }
 
 func drawUITextCentered(screen *ebiten.Image, body string, x, y, w, h, size int) {
+	cached := getCachedUIText(body, size)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x+(w-cached.w)/2), float64(y+(h-cached.h)/2))
+	screen.DrawImage(cached.img, op)
+}
+
+type uiTextCacheKey struct {
+	body string
+	size int
+}
+
+type cachedUIText struct {
+	img *ebiten.Image
+	w   int
+	h   int
+}
+
+var uiTextCache = map[uiTextCacheKey]*cachedUIText{}
+
+func getCachedUIText(body string, size int) *cachedUIText {
+	key := uiTextCacheKey{body: body, size: size}
+	if cached := uiTextCache[key]; cached != nil {
+		return cached
+	}
+	face := GetGoTextFace(size)
+	width, height := text.Measure(body, face, face.Size)
+	w := max(1, int(math.Ceil(width)))
+	h := max(1, int(math.Ceil(height)))
+	img := ebiten.NewImage(w, h)
 	op := &text.DrawOptions{}
-	op.GeoM.Translate(float64(x+w/2), float64(y+h/2))
-	op.LayoutOptions.PrimaryAlign = text.AlignCenter
-	op.LayoutOptions.SecondaryAlign = text.AlignCenter
 	op.ColorScale.ScaleWithColor(uiBorder)
-	text.Draw(screen, body, GetGoTextFace(size), op)
+	text.Draw(img, body, face, op)
+	cached := &cachedUIText{img: img, w: w, h: h}
+	if len(uiTextCache) > 128 {
+		uiTextCache = map[uiTextCacheKey]*cachedUIText{}
+	}
+	uiTextCache[key] = cached
+	return cached
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
