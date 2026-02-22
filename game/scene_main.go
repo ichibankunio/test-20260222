@@ -19,6 +19,7 @@ type MainScene struct {
 	gauge        float64
 	gameOver     bool
 	danmaku      Danmaku
+	particles    impactParticleSystem
 	lastTouchID  ebiten.TouchID
 	touchActive  bool
 	lastTouchX   float64
@@ -39,6 +40,8 @@ func (s *MainScene) Init(_ *flib.Game) {
 func (s *MainScene) Start(_ *flib.Game) {}
 
 func (s *MainScene) Update(_ *flib.Game) error {
+	s.particles.update()
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return fmt.Errorf("exit")
 	}
@@ -53,7 +56,11 @@ func (s *MainScene) Update(_ *flib.Game) error {
 	s.updatePlayerFromSwipe()
 	if s.danmaku != nil {
 		tick := s.danmaku.Update(s.playerX, s.playerY, s.playerRadius)
+		for _, p := range tick.CoinCollecteds {
+			s.particles.spawnCoinPickup(p.X, p.Y)
+		}
 		if tick.Hit {
+			s.particles.spawnPlayerBurst(s.playerX, s.playerY)
 			s.gameOver = true
 			if se := FirstSE(); len(se) > 0 {
 				PlaySE(se)
@@ -77,6 +84,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	if s.danmaku != nil {
 		s.danmaku.Draw(screen)
 	}
+	s.particles.draw(screen)
 
 	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
 	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
@@ -120,6 +128,7 @@ func (s *MainScene) retryStage() {
 	s.touchActive = false
 	s.mouseActive = false
 	s.gauge = 0
+	s.particles.reset()
 	s.startStage()
 }
 
