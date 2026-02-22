@@ -15,9 +15,10 @@ STATE_DIR="${STATE_DIR:-${ROOT_DIR}/.codex-worker}"
 LOCK_DIR="${STATE_DIR}/lock"
 WORKTREE_LOCK_DIR="${STATE_DIR}/worktree-lock"
 PROCESSED_DIR="${STATE_DIR}/processed"
+STARTED_DIR="${STATE_DIR}/issue-started"
 LOG_DIR="${STATE_DIR}/logs"
 
-mkdir -p "${PROCESSED_DIR}" "${LOG_DIR}"
+mkdir -p "${PROCESSED_DIR}" "${STARTED_DIR}" "${LOG_DIR}"
 
 if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
   echo "issue worker lock exists (${LOCK_DIR}); another worker is running."
@@ -89,7 +90,15 @@ while true; do
   if [[ -n "${NEXT_ISSUE}" ]]; then
     handled_any=true
     LOG_FILE="${LOG_DIR}/issue-${NEXT_ISSUE}-$(date +%Y%m%d%H%M%S).log"
+    STARTED_FILE="${STARTED_DIR}/${NEXT_ISSUE}.started"
     log "processing issue #${NEXT_ISSUE}"
+    if [[ ! -f "${STARTED_FILE}" ]]; then
+      if gh issue comment "${NEXT_ISSUE}" --repo "${REPO}" --body "Codex started working on this issue now." >/dev/null 2>&1; then
+        touch "${STARTED_FILE}"
+      else
+        log "failed to post start comment for issue #${NEXT_ISSUE}"
+      fi
+    fi
     set +e
     "${RUN_ISSUE_SCRIPT}" "${NEXT_ISSUE}" 2>&1 \
       | tee "${LOG_FILE}" \

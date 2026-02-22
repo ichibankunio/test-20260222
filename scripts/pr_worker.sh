@@ -24,10 +24,11 @@ STATE_DIR="${STATE_DIR:-${ROOT_DIR}/.codex-worker}"
 LOCK_DIR="${STATE_DIR}/pr-lock"
 WORKTREE_LOCK_DIR="${STATE_DIR}/worktree-lock"
 PROCESSED_DIR="${STATE_DIR}/processed-comments"
+STARTED_DIR="${STATE_DIR}/started-comments"
 LOG_DIR="${STATE_DIR}/logs"
 BASE_BRANCH="${BASE_BRANCH:-main}"
 
-mkdir -p "${PROCESSED_DIR}" "${LOG_DIR}"
+mkdir -p "${PROCESSED_DIR}" "${STARTED_DIR}" "${LOG_DIR}"
 
 if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
   echo "pr worker lock exists (${LOCK_DIR}); another worker is running."
@@ -195,6 +196,7 @@ while true; do
       comment_url="$(printf '%s' "${json}" | jq -r '.html_url')"
       comment_body="$(printf '%s' "${json}" | jq -r '.body')"
       first_line="$(printf '%s\n' "${comment_body}" | head -n 1)"
+      started_file="${STARTED_DIR}/${comment_id}.started"
 
       mode="apply"
       if [[ "${first_line}" == "${TRIGGER_PREFIX} reply"* ]]; then
@@ -202,6 +204,13 @@ while true; do
       fi
 
       log "processing PR #${pr_number} comment #${comment_id} (${mode})"
+      if [[ ! -f "${started_file}" ]]; then
+        if gh pr comment "${pr_number}" --repo "${REPO}" --body "Codex started handling [this comment](${comment_url}) now." >/dev/null 2>&1; then
+          touch "${started_file}"
+        else
+          log "failed to post start comment for PR #${pr_number} comment #${comment_id}"
+        fi
+      fi
       handled_any=true
       if run_codex_for_comment "${pr_number}" "${comment_id}" "${comment_url}" "${comment_body}" "${head_branch}" "${mode}"; then
         touch "${PROCESSED_DIR}/${comment_id}.done"
