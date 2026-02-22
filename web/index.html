@@ -7,7 +7,7 @@
   <style>
     html, body { margin: 0; height: 100%; background: #111; }
     canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
-    #hint { position: fixed; left: 12px; top: 12px; color: #fff; font: 14px/1.4 system-ui; opacity: .8; }
+    #hint { position: fixed; left: 12px; top: 12px; color: #fff; font: 14px/1.4 system-ui; opacity: .9; background: rgba(0,0,0,.45); padding: 8px 10px; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -16,27 +16,58 @@
   <script>
     const go = new Go();
     let started = false;
+    let exited = false;
+
+    function setHint(message) {
+      const hint = document.getElementById("hint");
+      if (hint) hint.textContent = message;
+    }
+
+    const goExit = go.exit.bind(go);
+    go.exit = (code) => {
+      exited = true;
+      started = false;
+      if (code === 0) {
+        setHint("Game finished.");
+      } else {
+        setHint(`WASM exited with code ${code}. Open console log for details.`);
+      }
+      goExit(code);
+    };
+
+    window.addEventListener("error", (event) => {
+      setHint(`Runtime error: ${event.message}`);
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason = event?.reason?.message || event?.reason || "unknown";
+      setHint(`Unhandled rejection: ${reason}`);
+    });
 
     async function run() {
       if (started) return;
       started = true;
+      exited = false;
       const resp = await fetch("./game.wasm");
       if (!resp.ok) {
         throw new Error(`failed to fetch game.wasm: ${resp.status} ${resp.statusText}`);
       }
       const bytes = await resp.arrayBuffer();
       const result = await WebAssembly.instantiate(bytes, go.importObject);
-      document.getElementById("hint")?.remove();
-      go.run(result.instance);
+      setHint("Starting WASM runtime...");
+      const runPromise = go.run(result.instance);
+
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      if (!exited) {
+        document.getElementById("hint")?.remove();
+      }
+
+      await runPromise;
     }
 
     function boot() {
       run().catch((err) => {
         started = false;
-        const hint = document.getElementById("hint");
-        if (hint) {
-          hint.textContent = `Failed to start game: ${err?.message || err}`;
-        }
+        setHint(`Failed to start game: ${err?.message || err}`);
         console.error(err);
       });
     }
