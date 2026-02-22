@@ -268,6 +268,9 @@ func drawPlayer(screen *ebiten.Image, x, y, r float64) {
 }
 
 func drawBullets(screen *ebiten.Image, bullets []projectile) {
+	if globalBulletShaderRenderer.draw(screen, bullets) {
+		return
+	}
 	for _, b := range bullets {
 		vector.DrawFilledCircle(screen, float32(b.x), float32(b.y), float32(b.radius), enemyBullet, true)
 		vector.DrawFilledCircle(screen, float32(b.x), float32(b.y), float32(b.radius*0.45), enemyBulletIn, true)
