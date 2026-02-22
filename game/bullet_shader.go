@@ -33,7 +33,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	homing := custom.z
 	life := custom.w
 
-	edge := clamp((1.0-dist)*4.0, 0.0, 1.0)
 	core := clamp((innerRadius-dist)/(innerRadius+0.0001), 0.0, 1.0)
 	ring := clamp((1.0-dist)/(1.0-innerRadius+0.0001), 0.0, 1.0)
 	accentMix := clamp(heat*0.55+homing*0.35+life*0.10, 0.0, 1.0)
@@ -41,7 +40,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	outer := color.rgb
 	inner := blend(InnerColor.rgb, vec3(1.0, 0.96, 0.96), accentMix*0.35)
 	col := blend(outer, inner, ring*0.28+core*0.72)
-	alpha := edge
+	alpha := 1.0
 	return vec4(col*alpha, alpha)
 }
 `
@@ -63,6 +62,7 @@ func (r *bulletShaderRenderer) init() {
 		r.initErr = fmt.Errorf("new bullet shader: %w", r.initErr)
 		return
 	}
+	r.op.AntiAlias = false
 	ic := colorToFloat32(enemyBulletIn)
 	r.op.Uniforms = map[string]any{
 		"InnerColor": []float32{ic[0], ic[1], ic[2], ic[3]},

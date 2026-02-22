@@ -33,11 +33,13 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	hot := 1.0 - life
 
 	core := clamp((coreRadius-dist)/(coreRadius+0.0001), 0.0, 1.0)
-	halo := clamp((1.0-dist)*1.3, 0.0, 1.0)
 	streak := sin(atan2(srcPos.y, srcPos.x)*7.0 + turbulence*18.0 + hot*8.0)
 	flare := pow(clamp(streak*0.5+0.5, 0.0, 1.0), 3.0) * pow(clamp(1.0-dist, 0.0, 1.0), 1.7)
 
-	alpha := clamp((halo*0.72+core*0.28+flare*0.65)*life, 0.0, 1.0)
+	alpha := 0.0
+	if core*0.7+flare*0.3 >= 0.32 {
+		alpha = life
+	}
 	col := blend(color.rgb, vec3(1.0, 0.98, 0.92), core*0.55+flare*0.25)
 	return vec4(col*alpha, alpha)
 }
@@ -141,6 +143,7 @@ func (r *impactParticleRenderer) init() {
 		r.initErr = fmt.Errorf("new impact particle shader: %w", r.initErr)
 		return
 	}
+	r.op.AntiAlias = false
 }
 
 func (r *impactParticleRenderer) draw(screen *ebiten.Image, particles []impactParticle) {
