@@ -15,6 +15,10 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "jq command is required." >&2
   exit 1
 fi
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl command is required." >&2
+  exit 1
+fi
 if ! command -v codex >/dev/null 2>&1; then
   echo "codex command is required." >&2
   exit 1
@@ -32,9 +36,11 @@ PROMPT_FILE="${TMP_DIR}/prompt.txt"
 RESPONSE_FILE="${TMP_DIR}/response.txt"
 PLAN_PROMPT_FILE="${TMP_DIR}/plan_prompt.txt"
 PLAN_RESPONSE_FILE="${TMP_DIR}/plan_response.txt"
+IMAGE_DIR="${TMP_DIR}/images"
 STATE_DIR="${STATE_DIR:-$(pwd)/.codex-worker}"
 QUESTION_STATE_DIR="${STATE_DIR}/issue-questions"
 QUESTION_STATE_FILE="${QUESTION_STATE_DIR}/${ISSUE_NUMBER}.json"
+CODEX_IMAGE_ARGS=()
 
 cleanup() {
   rm -rf "${TMP_DIR}"
@@ -52,12 +58,55 @@ if gh pr list --repo "${REPO}" --state open --head "${BRANCH}" --json number --j
 fi
 
 mkdir -p "${QUESTION_STATE_DIR}"
+mkdir -p "${IMAGE_DIR}"
 
 RAW_TITLE="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json title --jq .title)"
 RAW_BODY="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json body --jq .body)"
 ISSUE_URL="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json url --jq .url)"
 PR_TITLE="${RAW_TITLE}"
 ANSWER_CONTEXT=""
+
+collect_issue_images() {
+  local url idx ext out
+  idx=0
+  while IFS= read -r url; do
+    [[ -z "${url}" ]] && continue
+    case "${url}" in
+      *.png|*.jpg|*.jpeg|*.gif|*.webp|*.bmp|*.svg|*user-images.githubusercontent.com/*|*github.com/user-attachments/*)
+        ;;
+      *)
+        continue
+        ;;
+    esac
+
+    idx=$((idx + 1))
+    ext="$(printf '%s' "${url}" | sed -E 's/.*(\.[A-Za-z0-9]{2,5})(\?.*)?$/\1/')"
+    if [[ ! "${ext}" =~ ^\.[A-Za-z0-9]{2,5}$ ]]; then
+      ext=".img"
+    fi
+    out="${IMAGE_DIR}/issue-${ISSUE_NUMBER}-${idx}${ext}"
+    if curl -fsSL "${url}" -o "${out}"; then
+      CODEX_IMAGE_ARGS+=("-i" "${out}")
+    fi
+  done < <(
+    printf '%s\n' "${RAW_BODY}" \
+      | perl -nE '
+          while(/\!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g){say $1}
+          while(/<(https?:\/\/[^>]+)>/g){say $1}
+          while(/\b(https?:\/\/\S+)/g){say $1}
+        ' \
+      | sed -E 's/[)>.,]+$//' \
+      | awk '!seen[$0]++'
+  )
+}
+
+run_codex_exec() {
+  local output_file="$1"
+  local prompt_file="$2"
+  codex exec --full-auto -C "$(pwd)" -o "${output_file}" "${CODEX_IMAGE_ARGS[@]}" - < "${prompt_file}"
+}
+
+collect_issue_images
 
 if [[ -f "${QUESTION_STATE_FILE}" ]]; then
   ASKED_AT="$(jq -r '.asked_at' "${QUESTION_STATE_FILE}")"
@@ -102,7 +151,7 @@ QUESTION_FOR_ISSUE: <question>
 Do not output anything else.
 EOF
 
-codex exec --full-auto -C "$(pwd)" -o "${PLAN_RESPONSE_FILE}" - < "${PLAN_PROMPT_FILE}"
+run_codex_exec "${PLAN_RESPONSE_FILE}" "${PLAN_PROMPT_FILE}"
 
 QUESTION_TEXT="$(sed -n 's/^QUESTION_FOR_ISSUE:[[:space:]]*//p' "${PLAN_RESPONSE_FILE}" | head -n 1)"
 if [[ -n "${QUESTION_TEXT}" ]]; then
@@ -159,7 +208,7 @@ Requirements:
   QUESTION_FOR_REVIEWER: <your question>
 EOF
 
-codex exec --full-auto -C "$(pwd)" -o "${RESPONSE_FILE}" - < "${PROMPT_FILE}"
+run_codex_exec "${RESPONSE_FILE}" "${PROMPT_FILE}"
 
 # Guard: ensure commit always happens on the issue branch.
 if [[ "$(git branch --show-current)" != "${BRANCH}" ]]; then
