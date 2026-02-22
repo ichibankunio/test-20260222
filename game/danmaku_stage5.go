@@ -13,9 +13,9 @@ func newStage5Danmaku() Danmaku {
 			d.spawnSpread(-8, y, 1.0, []float64{14})
 			d.spawnSpread(ScreenWidth+8, y+10, 1.0, []float64{166})
 		}
-		if frame%56 == 18 {
+		if frame%19 == 18 {
 			xs := []float64{30, 114, 42, 102, 54, 90, 66, 78}
-			d.spawnCoin(xs[(frame/56)%len(xs)], -6, 0, 1.04, 20)
+			d.spawnCoin(xs[(frame/19)%len(xs)], -6, 0, 1.04, 20)
 		}
 	})
 }

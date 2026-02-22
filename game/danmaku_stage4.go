@@ -6,7 +6,7 @@ func newStage4Danmaku() Danmaku {
 			offset := float64((frame / 18 * 9) % 360)
 			d.spawnRing(ScreenWidth/2, 36, 0.95, 8, offset)
 		}
-		if frame%62 == 22 {
+		if frame%21 == 1 {
 			d.spawnCoin(ScreenWidth/2, -6, 0, 0.9, 24)
 		}
 	})

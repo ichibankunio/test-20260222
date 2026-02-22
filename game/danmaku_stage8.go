@@ -10,9 +10,9 @@ func newStage8Danmaku() Danmaku {
 			offset := float64((frame / 44 * 15) % 360)
 			d.spawnRing(ScreenWidth/2, 54, 0.92, 7, offset)
 		}
-		if frame%52 == 18 {
+		if frame%17 == 1 {
 			xs := []float64{18, 36, 54, 72, 90, 108, 126}
-			d.spawnCoin(xs[(frame/52)%len(xs)], -6, 0, 1.04, 20)
+			d.spawnCoin(xs[(frame/17)%len(xs)], -6, 0, 1.04, 20)
 		}
 	})
 }

@@ -71,7 +71,7 @@ func (d *stageDanmaku) Draw(screen *ebiten.Image) {
 }
 
 func (d *stageDanmaku) spawnSpread(x, y, speed float64, angles []float64) {
-	for _, deg := range angles {
+	for _, deg := range simplifyAngles(angles) {
 		rad := deg * math.Pi / 180
 		d.bullets = append(d.bullets, projectile{
 			x:      x,
@@ -81,6 +81,21 @@ func (d *stageDanmaku) spawnSpread(x, y, speed float64, angles []float64) {
 			radius: 4.0,
 		})
 	}
+}
+
+func simplifyAngles(angles []float64) []float64 {
+	if len(angles) <= 2 {
+		return angles
+	}
+	simplified := make([]float64, 0, len(angles)/2+1)
+	for i := 0; i < len(angles); i += 2 {
+		simplified = append(simplified, angles[i])
+	}
+	last := angles[len(angles)-1]
+	if simplified[len(simplified)-1] != last {
+		simplified = append(simplified, last)
+	}
+	return simplified
 }
 
 func (d *stageDanmaku) spawnRing(x, y, speed float64, count int, offsetDeg float64) {
