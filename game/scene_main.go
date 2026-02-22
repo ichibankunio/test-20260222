@@ -520,9 +520,9 @@ func drawGauge(screen *ebiten.Image, rate float64) {
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
-	drawFilledRect(screen, x-r, y-r, r*2, r*2, playerMain)
-	drawFilledRect(screen, x-r+2, y-r+2, r*2-4, r*2-4, playerAccent)
-	drawFilledRect(screen, x-r+3, y-r+3, r*2-6, r*2-6, playerMain)
+	vector.DrawFilledCircle(screen, float32(x), float32(y), float32(r), playerMain, true)
+	vector.DrawFilledCircle(screen, float32(x), float32(y), float32(r*0.65), playerAccent, true)
+	vector.DrawFilledCircle(screen, float32(x), float32(y), float32(r*0.4), playerMain, true)
 }
 
 func drawBullets(screen *ebiten.Image, bullets []projectile) {
