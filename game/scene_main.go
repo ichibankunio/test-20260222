@@ -87,11 +87,11 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	drawObstacles(screen, s.cameraX, s.obstacles)
 	drawPlayer(screen, s.playerX-s.cameraX, s.playerY)
 
-	ebitenutil.DebugPrintAt(screen, "JUMP: TAP / CLICK / SPACE", 20, 20)
-	ebitenutil.DebugPrintAt(screen, "ESC: EXIT", 20, 42)
+	ebitenutil.DebugPrintAt(screen, "JUMP: TAP/SPACE", 4, 4)
+	ebitenutil.DebugPrintAt(screen, "ESC: EXIT", 4, 16)
 	if s.gameOver {
-		ebitenutil.DebugPrintAt(screen, "GAME OVER", 20, 84)
-		ebitenutil.DebugPrintAt(screen, "TAP / CLICK / SPACE TO RESTART", 20, 106)
+		ebitenutil.DebugPrintAt(screen, "GAME OVER", 30, 104)
+		ebitenutil.DebugPrintAt(screen, "TAP/SPACE: RETRY", 16, 118)
 	}
 }
 
@@ -103,16 +103,16 @@ var (
 )
 
 const (
-	groundH             = 360.0
-	playerWidth         = 70.0
-	playerHeight        = 96.0
-	autoScrollSpeed     = 4.0
-	gravity             = 1.1
-	jumpVelocity        = -29.7
-	groundTileW         = 96.0
-	playerScreenOffsetX = 160.0
-	obstacleMinGap      = 360.0
-	obstacleWidth       = 72.0
+	groundH             = 66.0
+	playerWidth         = 18.0
+	playerHeight        = 24.0
+	autoScrollSpeed     = 1.3
+	gravity             = 0.44
+	jumpVelocity        = -8.0
+	groundTileW         = 24.0
+	playerScreenOffsetX = 24.0
+	obstacleMinGap      = 96.0
+	obstacleWidth       = 14.0
 )
 
 func groundTop() float64 {
@@ -120,18 +120,18 @@ func groundTop() float64 {
 }
 
 func drawClouds(screen *ebiten.Image, cameraX float64) {
-	const cloudSpacing = 420.0
+	const cloudSpacing = 96.0
 	cloudCameraX := cameraX * 0.35
 	start := -math.Mod(cloudCameraX, cloudSpacing)
 	for x := start - cloudSpacing; x < ScreenWidth+cloudSpacing; x += cloudSpacing {
-		screenX := x + 60
-		drawFilledRect(screen, screenX, 140, 180, 54, gbLight)
-		drawFilledRect(screen, screenX+18, 116, 132, 34, gbLight)
+		screenX := x + 12
+		drawFilledRect(screen, screenX, 40, 42, 12, gbLight)
+		drawFilledRect(screen, screenX+8, 32, 30, 9, gbLight)
 	}
 }
 
 func drawGround(screen *ebiten.Image, cameraX float64) {
-	drawFilledRect(screen, 0, groundTop()-16, ScreenWidth, 16, gbLight)
+	drawFilledRect(screen, 0, groundTop()-3, ScreenWidth, 3, gbLight)
 	start := -math.Mod(cameraX, groundTileW)
 	for x := start - groundTileW; x < ScreenWidth+groundTileW; x += groundTileW {
 		tile := int((cameraX + x) / groundTileW)
@@ -140,16 +140,16 @@ func drawGround(screen *ebiten.Image, cameraX float64) {
 			fill = gbDarkest
 		}
 		drawFilledRect(screen, x, groundTop(), groundTileW, groundH, fill)
-		drawFilledRect(screen, x+8, groundTop()+8, 16, 16, gbLightest)
+		drawFilledRect(screen, x+3, groundTop()+4, 5, 5, gbLightest)
 	}
 }
 
 func drawPlayer(screen *ebiten.Image, x, y float64) {
 	drawFilledRect(screen, x, y, playerWidth, playerHeight, gbDark)
-	drawFilledRect(screen, x, y, playerWidth, 24, gbDarkest)
-	drawFilledRect(screen, x+18, y+26, 34, 36, gbLightest)
-	drawFilledRect(screen, x+8, y+66, 20, 30, gbLight)
-	drawFilledRect(screen, x+42, y+66, 20, 30, gbLight)
+	drawFilledRect(screen, x, y, playerWidth, 6, gbDarkest)
+	drawFilledRect(screen, x+5, y+7, 8, 8, gbLightest)
+	drawFilledRect(screen, x+2, y+16, 5, 8, gbLight)
+	drawFilledRect(screen, x+11, y+16, 5, 8, gbLight)
 }
 
 func drawObstacles(screen *ebiten.Image, cameraX float64, obstacles []obstacle) {
@@ -157,7 +157,7 @@ func drawObstacles(screen *ebiten.Image, cameraX float64, obstacles []obstacle) 
 		x := o.x - cameraX
 		y := groundTop() - o.height
 		drawFilledRect(screen, x, y, o.width, o.height, gbDarkest)
-		drawFilledRect(screen, x+6, y+6, o.width-12, 16, gbDark)
+		drawFilledRect(screen, x+2, y+3, o.width-4, 4, gbDark)
 	}
 }
 
@@ -186,12 +186,12 @@ func (s *MainScene) spawnObstacles() {
 }
 
 func obstacleHeightFromIndex(i int) float64 {
-	heights := []float64{90, 130, 170, 110}
+	heights := []float64{20, 30, 42, 26}
 	return heights[i%len(heights)]
 }
 
 func obstacleGapFromIndex(i int) float64 {
-	gaps := []float64{360, 420, 500, 390}
+	gaps := []float64{88, 102, 120, 96}
 	return gaps[i%len(gaps)]
 }
 

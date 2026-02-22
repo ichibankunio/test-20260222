@@ -37,7 +37,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.FlibGame.Draw(screen)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %.2f", ebiten.CurrentFPS()), 12, 12)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %.2f", ebiten.CurrentFPS()), 4, ScreenHeight-14)
 }
 
 func (g *Game) Layout(_, _ int) (int, int) {
