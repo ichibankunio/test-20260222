@@ -72,13 +72,12 @@ func (s *MainScene) Update(_ *flib.Game) error {
 func (s *MainScene) Draw(screen *ebiten.Image) {
 	screen.Fill(bgNight)
 	drawBackdrop(screen)
-	drawGauge(screen, s.gauge/stageGaugeMax)
+	drawGauge(screen, s.stage, s.gauge/stageGaugeMax)
 	drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
 	if s.danmaku != nil {
 		s.danmaku.Draw(screen)
 	}
 
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
 	ebitenutil.DebugPrintAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
 	ebitenutil.DebugPrintAt(screen, "ESC: EXIT", 4, 28)
 	if s.gameOver {
@@ -91,7 +90,6 @@ var (
 	bgNight       = color.RGBA{R: 7, G: 8, B: 12, A: 255}
 	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
-	uiGaugeFill   = color.RGBA{R: 0, G: 214, B: 172, A: 255}
 	playerMain    = color.RGBA{R: 158, G: 37, B: 255, A: 255}
 	playerAccent  = color.RGBA{R: 250, G: 250, B: 250, A: 255}
 	enemyBullet   = color.RGBA{R: 16, G: 186, B: 166, A: 255}
@@ -197,14 +195,39 @@ func drawBackdrop(screen *ebiten.Image) {
 	}
 }
 
-func drawGauge(screen *ebiten.Image, rate float64) {
-	x := 8.0
-	y := 38.0
-	w := ScreenWidth - 16.0
-	h := 9.0
-	drawFilledRect(screen, x-1, y-1, w+2, h+2, uiBorder)
-	drawFilledRect(screen, x, y, w, h, color.RGBA{R: 16, G: 22, B: 30, A: 255})
-	drawFilledRect(screen, x, y, w*clamp(rate, 0, 1), h, uiGaugeFill)
+func drawGauge(screen *ebiten.Image, stage int, rate float64) {
+	level := stage
+	if level < 1 {
+		level = 1
+	}
+	nextLevel := level + 1
+
+	boxX := 8.0
+	boxY := 36.0
+	boxW := 24.0
+	boxH := 12.0
+	rightBoxX := ScreenWidth - 8.0 - boxW
+	gaugeX := boxX + boxW + 1.0
+	gaugeW := rightBoxX - gaugeX - 1.0
+	gaugeH := 5.0
+	gaugeY := boxY + (boxH-gaugeH)/2
+
+	drawFilledRect(screen, boxX-1, boxY-1, boxW+2, boxH+2, uiBorder)
+	drawFilledRect(screen, boxX, boxY, boxW, boxH, coinMain)
+	drawFilledRect(screen, rightBoxX-1, boxY-1, boxW+2, boxH+2, uiBorder)
+	drawFilledRect(screen, rightBoxX, boxY, boxW, boxH, color.RGBA{R: 16, G: 22, B: 30, A: 255})
+
+	drawFilledRect(screen, gaugeX-1, gaugeY-1, gaugeW+2, gaugeH+2, uiBorder)
+	drawFilledRect(screen, gaugeX, gaugeY, gaugeW, gaugeH, color.RGBA{R: 16, G: 22, B: 30, A: 255})
+	drawFilledRect(screen, gaugeX, gaugeY, gaugeW*clamp(rate, 0, 1), gaugeH, coinMain)
+
+	levelText := fmt.Sprintf("%d", level)
+	nextLevelText := fmt.Sprintf("%d", nextLevel)
+	textY := int(boxY + (boxH-8.0)/2)
+	levelTextX := int(boxX + (boxW-float64(len(levelText))*6.0)/2)
+	nextLevelTextX := int(rightBoxX + (boxW-float64(len(nextLevelText))*6.0)/2)
+	ebitenutil.DebugPrintAt(screen, levelText, levelTextX, textY)
+	ebitenutil.DebugPrintAt(screen, nextLevelText, nextLevelTextX, textY)
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
