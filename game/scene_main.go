@@ -252,10 +252,6 @@ func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth, ne
 	centerW := width - levelW - nextW
 	centerH := clamp(height*centerRate, 1, height)
 	centerY := y + (height-centerH)/2
-	if centerW > centerH && nextW > 0 {
-		drawGaugeShellPath(screen, x, y, width, height, levelW, nextW, centerY, centerH, c)
-		return
-	}
 
 	drawRoundedRect(screen, x, y, levelW, height, 3.0, c)
 	if nextW > 0 {
