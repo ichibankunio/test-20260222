@@ -59,7 +59,7 @@ func (s *MainScene) Update(_ *flib.Game) error {
 
 	if s.gameOver {
 		if isRestartInputJustPressed() {
-			s.reset()
+			s.retryStage()
 		}
 		return nil
 	}
@@ -122,6 +122,10 @@ const (
 
 func (s *MainScene) reset() {
 	s.stage = 1
+	s.retryStage()
+}
+
+func (s *MainScene) retryStage() {
 	s.playerX = ScreenWidth / 2
 	s.playerY = ScreenHeight - 36
 	s.playerRadius = 6
