@@ -72,7 +72,7 @@ func (s *MainScene) Update(_ *flib.Game) error {
 func (s *MainScene) Draw(screen *ebiten.Image) {
 	screen.Fill(bgNight)
 	drawBackdrop(screen)
-	drawGauge(screen, s.gauge/stageGaugeMax)
+	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
 	drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
 	if s.danmaku != nil {
 		s.danmaku.Draw(screen)
@@ -91,7 +91,8 @@ var (
 	bgNight       = color.RGBA{R: 7, G: 8, B: 12, A: 255}
 	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
-	uiGaugeFill   = color.RGBA{R: 0, G: 214, B: 172, A: 255}
+	uiGaugeFill   = color.RGBA{R: 150, G: 43, B: 196, A: 255}
+	uiGaugeBase   = color.RGBA{R: 5, G: 5, B: 8, A: 255}
 	playerMain    = color.RGBA{R: 158, G: 37, B: 255, A: 255}
 	playerAccent  = color.RGBA{R: 250, G: 250, B: 250, A: 255}
 	enemyBullet   = color.RGBA{R: 16, G: 186, B: 166, A: 255}
@@ -197,14 +198,59 @@ func drawBackdrop(screen *ebiten.Image) {
 	}
 }
 
-func drawGauge(screen *ebiten.Image, rate float64) {
-	x := 8.0
-	y := 38.0
-	w := ScreenWidth - 16.0
-	h := 9.0
-	drawFilledRect(screen, x-1, y-1, w+2, h+2, uiBorder)
-	drawFilledRect(screen, x, y, w, h, color.RGBA{R: 16, G: 22, B: 30, A: 255})
-	drawFilledRect(screen, x, y, w*clamp(rate, 0, 1), h, uiGaugeFill)
+func drawGauge(screen *ebiten.Image, rate float64, stage int) {
+	leftX := 8.0
+	topY := 38.0
+	boxW := 44.0
+	boxH := 28.0
+	barY := topY + 10.0
+	barH := 8.0
+	rightX := ScreenWidth - 8.0 - boxW
+	barX := leftX + boxW
+	barW := rightX - barX
+
+	drawFilledRect(screen, leftX, topY, boxW, boxH, uiGaugeBase)
+	drawFilledRect(screen, barX, barY, barW, barH, uiGaugeBase)
+	drawFilledRect(screen, rightX, topY, boxW, boxH, uiGaugeBase)
+
+	fillPad := 2.0
+	fillW := (boxW - fillPad*2) * clamp(rate, 0, 1)
+	drawFilledRect(screen, leftX+fillPad, topY+fillPad, fillW, boxH-fillPad*2, uiGaugeFill)
+
+	// One-stroke style frame: trace the full outer contour and use rounded joins.
+	var frame vector.Path
+	frame.MoveTo(float32(leftX), float32(topY))
+	frame.LineTo(float32(leftX+boxW), float32(topY))
+	frame.LineTo(float32(leftX+boxW), float32(barY))
+	frame.LineTo(float32(rightX), float32(barY))
+	frame.LineTo(float32(rightX), float32(topY))
+	frame.LineTo(float32(rightX+boxW), float32(topY))
+	frame.LineTo(float32(rightX+boxW), float32(topY+boxH))
+	frame.LineTo(float32(rightX), float32(topY+boxH))
+	frame.LineTo(float32(rightX), float32(barY+barH))
+	frame.LineTo(float32(leftX+boxW), float32(barY+barH))
+	frame.LineTo(float32(leftX+boxW), float32(topY+boxH))
+	frame.LineTo(float32(leftX), float32(topY+boxH))
+	frame.Close()
+
+	frameDrawOp := &vector.DrawPathOptions{}
+	frameDrawOp.AntiAlias = true
+	frameDrawOp.ColorScale.ScaleWithColor(uiBorder)
+	frameStroke := &vector.StrokeOptions{}
+	frameStroke.Width = 2
+	frameStroke.LineJoin = vector.LineJoinRound
+	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
+
+	drawCenteredDebugText(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH))
+	drawCenteredDebugText(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH))
+}
+
+func drawCenteredDebugText(screen *ebiten.Image, text string, x, y, w, h int) {
+	textW := len(text) * 6
+	textH := 8
+	tx := x + (w-textW)/2
+	ty := y + (h-textH)/2
+	ebitenutil.DebugPrintAt(screen, text, tx, ty)
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
