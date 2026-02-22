@@ -208,6 +208,7 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	outerH := 18.0
 	border := 1.0
 	levelBoxSize := outerH - border*2
+	outerLevelBoxSize := levelBoxSize + border*2
 	nextBoxW := 24.0
 	innerX := outerX + border
 	innerY := outerY + border
@@ -216,10 +217,13 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	gaugeX := innerX + levelBoxSize
 	gaugeW := innerW - levelBoxSize - nextBoxW
 
-	drawCapsule(screen, outerX, outerY, outerW, outerH, uiBorder)
-	drawCapsule(screen, innerX, innerY, innerW, innerH, color.RGBA{R: 16, G: 22, B: 30, A: 255})
-	drawRoundedRect(screen, innerX, innerY, levelBoxSize, levelBoxSize, 3.0, coinMain)
-	drawFilledRect(screen, gaugeX, innerY, gaugeW*clamp(rate, 0, 1), innerH, coinMain)
+	drawGaugeShell(screen, outerX, outerY, outerW, outerH, outerLevelBoxSize, uiBorder)
+	drawGaugeShell(screen, innerX, innerY, innerW, innerH, levelBoxSize, color.RGBA{R: 16, G: 22, B: 30, A: 255})
+
+	fillW := gaugeW * clamp(rate, 0, 1)
+	if fillW > 0 {
+		drawFilledRect(screen, gaugeX, innerY, fillW, innerH, coinMain)
+	}
 
 	levelText := fmt.Sprintf("%d", level)
 	nextLevelText := fmt.Sprintf("%d", nextLevel)
@@ -230,6 +234,23 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	textY := int(innerY + (innerH-8.0)/2)
 	ebitenutil.DebugPrintAt(screen, levelText, levelTextX, textY)
 	ebitenutil.DebugPrintAt(screen, nextLevelText, nextLevelTextX, textY)
+}
+
+func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth float64, c color.Color) {
+	if width <= 0 || height <= 0 {
+		return
+	}
+	levelW := clamp(levelBoxWidth, 0, width)
+	if levelW == 0 {
+		drawCapsule(screen, x, y, width, height, c)
+		return
+	}
+	drawRoundedRect(screen, x, y, levelW, height, 3.0, c)
+	capsuleX := x + levelW - height/2
+	capsuleW := width - (levelW - height/2)
+	if capsuleW > 0 {
+		drawCapsule(screen, capsuleX, y, capsuleW, height, c)
+	}
 }
 
 func drawCapsule(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
