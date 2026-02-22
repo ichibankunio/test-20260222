@@ -11,6 +11,7 @@
 - SE/BGMロード: `game/assets/se`, `game/assets/bgm`
 - JSONロード: `game/assets/data`
 - ゲーム画面の配色はゲームボーイ風8bitパレット
+- 敵弾描画は `kage` シェーダー + 三角形バッチで実行（高密度時の負荷を軽減）
 
 ## Run
 
