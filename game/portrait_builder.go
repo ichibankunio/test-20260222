@@ -32,16 +32,6 @@ type portraitBuilder struct {
 	progressFilled int
 }
 
-var (
-	portraitHairDark  = color.RGBA{R: 24, G: 28, B: 45, A: 220}
-	portraitHairLight = color.RGBA{R: 54, G: 62, B: 96, A: 220}
-	portraitSkin      = color.RGBA{R: 255, G: 215, B: 186, A: 222}
-	portraitShadow    = color.RGBA{R: 192, G: 140, B: 128, A: 210}
-	portraitEye       = color.RGBA{R: 232, G: 242, B: 255, A: 230}
-	portraitSuit      = color.RGBA{R: 22, G: 34, B: 56, A: 208}
-	portraitTie       = color.RGBA{R: 206, G: 74, B: 110, A: 220}
-)
-
 const (
 	shardsPerCoin = 20
 	maxShardCount = 420
@@ -49,39 +39,64 @@ const (
 
 func newPortraitBuilder() portraitBuilder {
 	p := portraitBuilder{}
-	pixels := make([]portraitPixel, 0, 760)
-	appendEllipse := func(cx, cy, rx, ry float64, c color.RGBA) {
-		for y := -ry; y <= ry; y += 2 {
-			for x := -rx; x <= rx; x += 2 {
-				nx := x / rx
-				ny := y / ry
-				if nx*nx+ny*ny <= 1 {
-					pixels = append(pixels, portraitPixel{x: cx + x, y: cy + y, col: c})
-				}
-			}
-		}
+	src := GetImage("bishonen.png")
+	if src == nil {
+		src = GetImage("zentablue.png")
 	}
-	appendRect := func(x, y, w, h float64, c color.RGBA) {
-		for py := 0.0; py < h; py += 2 {
-			for px := 0.0; px < w; px += 2 {
-				pixels = append(pixels, portraitPixel{x: x + px, y: y + py, col: c})
-			}
-		}
+	if src == nil {
+		p.pixels = nil
+		p.reset()
+		return p
 	}
 
-	cx := ScreenWidth * 0.5
-	appendEllipse(cx, 114, 25, 32, portraitHairDark)
-	appendEllipse(cx, 110, 19, 24, portraitHairLight)
-	appendEllipse(cx, 114, 16, 22, portraitSkin)
-	appendEllipse(cx-8, 117, 6, 9, portraitSkin)
-	appendEllipse(cx+8, 117, 6, 9, portraitSkin)
-	appendEllipse(cx, 126, 11, 14, portraitShadow)
-	appendEllipse(cx-6, 108, 4, 2, portraitEye)
-	appendEllipse(cx+6, 108, 4, 2, portraitEye)
-	appendRect(cx-5, 136, 10, 10, portraitSkin)
-	appendRect(cx-18, 146, 36, 4, portraitSuit)
-	appendRect(cx-24, 150, 48, 16, portraitSuit)
-	appendRect(cx-3, 146, 6, 20, portraitTie)
+	b := src.Bounds()
+	sw := b.Dx()
+	sh := b.Dy()
+	if sw <= 0 || sh <= 0 {
+		p.pixels = nil
+		p.reset()
+		return p
+	}
+
+	maxW := 96.0
+	maxH := 160.0
+	scale := math.Min(maxW/float64(sw), maxH/float64(sh))
+	if scale <= 0 {
+		scale = 1
+	}
+	targetW := float64(sw) * scale
+	targetH := float64(sh) * scale
+	left := (ScreenWidth - targetW) * 0.5
+	top := 70.0
+	if top+targetH > ScreenHeight-8 {
+		top = ScreenHeight - 8 - targetH
+	}
+
+	const pxSize = 2
+	targetStep := float64(pxSize)
+	capacity := int((targetW / targetStep) * (targetH / targetStep))
+	pixels := make([]portraitPixel, 0, capacity)
+	for ty := 0.0; ty < targetH; ty += targetStep {
+		sy := int(ty / scale)
+		if sy < 0 || sy >= sh {
+			continue
+		}
+		for tx := 0.0; tx < targetW; tx += targetStep {
+			sx := int(tx / scale)
+			if sx < 0 || sx >= sw {
+				continue
+			}
+			col := color.RGBAModel.Convert(src.At(b.Min.X+sx, b.Min.Y+sy)).(color.RGBA)
+			if col.A < 8 {
+				continue
+			}
+			pixels = append(pixels, portraitPixel{
+				x:   left + tx,
+				y:   top + ty,
+				col: col,
+			})
+		}
+	}
 
 	p.pixels = pixels
 	p.reset()
