@@ -205,26 +205,29 @@ func drawGauge(screen *ebiten.Image, stage int, rate float64) {
 	outerX := 8.0
 	outerY := 36.0
 	outerW := ScreenWidth - 16.0
-	outerH := 12.0
+	outerH := 18.0
 	border := 1.0
-	boxW := 24.0
+	levelBoxSize := outerH - border*2
+	nextBoxW := 24.0
 	innerX := outerX + border
 	innerY := outerY + border
 	innerW := outerW - border*2
 	innerH := outerH - border*2
-	gaugeX := innerX + boxW
-	gaugeW := innerW - boxW*2
+	gaugeX := innerX + levelBoxSize
+	gaugeW := innerW - levelBoxSize - nextBoxW
 
 	drawCapsule(screen, outerX, outerY, outerW, outerH, uiBorder)
 	drawCapsule(screen, innerX, innerY, innerW, innerH, color.RGBA{R: 16, G: 22, B: 30, A: 255})
-	drawLeftRoundedRect(screen, innerX, innerY, boxW, innerH, coinMain)
+	drawRoundedRect(screen, innerX, innerY, levelBoxSize, levelBoxSize, 3.0, coinMain)
 	drawFilledRect(screen, gaugeX, innerY, gaugeW*clamp(rate, 0, 1), innerH, coinMain)
 
 	levelText := fmt.Sprintf("%d", level)
 	nextLevelText := fmt.Sprintf("%d", nextLevel)
-	textY := int(outerY + (outerH-8.0)/2)
-	levelTextX := int(innerX + (boxW-float64(len(levelText))*6.0)/2)
-	nextLevelTextX := int(innerX + innerW - boxW + (boxW-float64(len(nextLevelText))*6.0)/2)
+	levelTextW := float64(len(levelText)) * 6.0
+	nextLevelTextW := float64(len(nextLevelText)) * 6.0
+	levelTextX := int(innerX + (levelBoxSize-levelTextW)/2)
+	nextLevelTextX := int(innerX + innerW - nextBoxW + (nextBoxW-nextLevelTextW)/2)
+	textY := int(innerY + (innerH-8.0)/2)
 	ebitenutil.DebugPrintAt(screen, levelText, levelTextX, textY)
 	ebitenutil.DebugPrintAt(screen, nextLevelText, nextLevelTextX, textY)
 }
@@ -254,6 +257,24 @@ func drawLeftRoundedRect(screen *ebiten.Image, x, y, width, height float64, c co
 	}
 	drawFilledRect(screen, x+r, y, width-r, height, c)
 	vector.DrawFilledCircle(screen, float32(x+r), float32(y+r), float32(r), c, true)
+}
+
+func drawRoundedRect(screen *ebiten.Image, x, y, width, height, radius float64, c color.Color) {
+	if width <= 0 || height <= 0 {
+		return
+	}
+	r := clamp(radius, 0, min(width, height)/2)
+	if r == 0 {
+		drawFilledRect(screen, x, y, width, height, c)
+		return
+	}
+	drawFilledRect(screen, x+r, y, width-r*2, height, c)
+	drawFilledRect(screen, x, y+r, r, height-r*2, c)
+	drawFilledRect(screen, x+width-r, y+r, r, height-r*2, c)
+	vector.DrawFilledCircle(screen, float32(x+r), float32(y+r), float32(r), c, true)
+	vector.DrawFilledCircle(screen, float32(x+width-r), float32(y+r), float32(r), c, true)
+	vector.DrawFilledCircle(screen, float32(x+r), float32(y+height-r), float32(r), c, true)
+	vector.DrawFilledCircle(screen, float32(x+width-r), float32(y+height-r), float32(r), c, true)
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {
@@ -296,6 +317,13 @@ func clamp(v, minV, maxV float64) float64 {
 		return maxV
 	}
 	return v
+}
+
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func lerp(a, b, t float64) float64 {
