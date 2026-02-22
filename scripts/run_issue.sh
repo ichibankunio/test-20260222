@@ -57,17 +57,18 @@ RAW_TITLE="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json title --jq 
 RAW_BODY="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json body --jq .body)"
 ISSUE_URL="$(gh issue view "${ISSUE_NUMBER}" --repo "${REPO}" --json url --jq .url)"
 PR_TITLE="${RAW_TITLE}"
-ACTOR_LOGIN="$(gh api user --jq .login)"
 ANSWER_CONTEXT=""
 
 if [[ -f "${QUESTION_STATE_FILE}" ]]; then
   ASKED_AT="$(jq -r '.asked_at' "${QUESTION_STATE_FILE}")"
+  ASKED_COMMENT_ID="$(jq -r '.asked_comment_id // empty' "${QUESTION_STATE_FILE}")"
   ANSWER_JSON="$(
     gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
-      | jq -cr --arg asked_at "${ASKED_AT}" --arg actor "${ACTOR_LOGIN}" '
+      | jq -cr --arg asked_at "${ASKED_AT}" --arg asked_comment_id "${ASKED_COMMENT_ID}" '
           map(
             select(.created_at > $asked_at)
-            | select(.user.login != $actor)
+            | select((.id|tostring) != $asked_comment_id)
+            | select((.body // "") | test("^\\s*@codex\\b"; "i"))
           )
           | last // empty
         '
@@ -117,7 +118,7 @@ EOF
     jq -n --arg body "${QUESTION_COMMENT_BODY}" '{body: $body}' \
       | gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" --input -
   )"
-  printf '%s' "${QUESTION_COMMENT_JSON}" | jq '{asked_at: .created_at, question: .body}' > "${QUESTION_STATE_FILE}"
+  printf '%s' "${QUESTION_COMMENT_JSON}" | jq '{asked_at: .created_at, asked_comment_id: .id, question: .body}' > "${QUESTION_STATE_FILE}"
   echo "asked clarification question for issue #${ISSUE_NUMBER}; waiting for response"
   exit 20
 fi
