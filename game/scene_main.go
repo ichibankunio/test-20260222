@@ -88,8 +88,8 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 }
 
 var (
-	bgNight       = color.RGBA{R: 18, G: 28, B: 44, A: 255}
-	gridDark      = color.RGBA{R: 34, G: 48, B: 72, A: 255}
+	bgNight       = color.RGBA{R: 7, G: 8, B: 12, A: 255}
+	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
 	uiGaugeFill   = color.RGBA{R: 150, G: 43, B: 196, A: 255}
 	uiGaugeBase   = color.RGBA{R: 5, G: 5, B: 8, A: 255}
@@ -191,7 +191,7 @@ func drawBackdrop(screen *ebiten.Image) {
 		for x := 0.0; x < ScreenWidth; x += 16 {
 			shade := gridDark
 			if int((x+y)/16)%2 == 0 {
-				shade = color.RGBA{R: 24, G: 36, B: 56, A: 255}
+				shade = color.RGBA{R: 14, G: 18, B: 26, A: 255}
 			}
 			drawFilledRect(screen, x, y, 16, 16, shade)
 		}
