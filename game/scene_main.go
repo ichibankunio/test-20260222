@@ -20,6 +20,7 @@ type MainScene struct {
 	gameOver     bool
 	danmaku      Danmaku
 	particles    impactParticleSystem
+	portrait     portraitBuilder
 	lastTouchID  ebiten.TouchID
 	touchActive  bool
 	lastTouchX   float64
@@ -41,6 +42,7 @@ func (s *MainScene) Start(_ *flib.Game) {}
 
 func (s *MainScene) Update(_ *flib.Game) error {
 	s.particles.update()
+	s.portrait.update()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return fmt.Errorf("exit")
@@ -58,6 +60,7 @@ func (s *MainScene) Update(_ *flib.Game) error {
 		tick := s.danmaku.Update(s.playerX, s.playerY, s.playerRadius)
 		for _, p := range tick.CoinCollecteds {
 			s.particles.spawnCoinPickup(p.X, p.Y)
+			s.portrait.onCoinCollected(p.X, p.Y)
 		}
 		if tick.Hit {
 			s.particles.spawnPlayerBurst(s.playerX, s.playerY)
@@ -79,6 +82,7 @@ func (s *MainScene) Update(_ *flib.Game) error {
 func (s *MainScene) Draw(screen *ebiten.Image) {
 	screen.Fill(bgNight)
 	drawBackdrop(screen)
+	s.portrait.draw(screen)
 	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
 	drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
 	if s.danmaku != nil {
@@ -87,6 +91,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	s.particles.draw(screen)
 
 	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
+	drawUITextAt(screen, fmt.Sprintf("ART %02d%%", int(s.portrait.completionRate()*100)), 82, 4)
 	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
 	drawUITextAt(screen, "ESC: EXIT", 4, 28)
 	if s.gameOver {
@@ -117,6 +122,7 @@ const (
 
 func (s *MainScene) reset() {
 	s.stage = 1
+	s.portrait = newPortraitBuilder()
 	s.retryStage()
 }
 
