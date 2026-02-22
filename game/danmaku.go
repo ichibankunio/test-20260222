@@ -12,9 +12,15 @@ type Danmaku interface {
 	Draw(screen *ebiten.Image)
 }
 
+type ImpactPoint struct {
+	X float64
+	Y float64
+}
+
 type DanmakuTick struct {
-	Hit       bool
-	GaugeGain float64
+	Hit            bool
+	GaugeGain      float64
+	CoinCollecteds []ImpactPoint
 }
 
 type projectile struct {
@@ -54,9 +60,9 @@ func (d *stageDanmaku) Update(playerX, playerY, playerRadius float64) DanmakuTic
 	d.moveProjectiles(playerX, playerY)
 	d.cleanupProjectiles()
 	hit := d.hitEnemyBullet(playerX, playerY, playerRadius)
-	gaugeGain := d.collectCoins(playerX, playerY, playerRadius)
+	gaugeGain, coinCollecteds := d.collectCoins(playerX, playerY, playerRadius)
 	d.frame++
-	return DanmakuTick{Hit: hit, GaugeGain: gaugeGain}
+	return DanmakuTick{Hit: hit, GaugeGain: gaugeGain, CoinCollecteds: coinCollecteds}
 }
 
 func (d *stageDanmaku) Draw(screen *ebiten.Image) {
@@ -168,12 +174,14 @@ func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64) bo
 	return false
 }
 
-func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) float64 {
+func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) (float64, []ImpactPoint) {
 	n := 0
 	gaugeGain := 0.0
+	var coinCollecteds []ImpactPoint
 	for _, c := range d.coins {
 		if circlesOverlap(playerX, playerY, playerRadius, c.x, c.y, c.radius) {
 			gaugeGain += c.value
+			coinCollecteds = append(coinCollecteds, ImpactPoint{X: c.x, Y: c.y})
 			if se := FirstSE(); len(se) > 0 {
 				PlaySE(se)
 			}
@@ -183,5 +191,5 @@ func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) floa
 		n++
 	}
 	d.coins = d.coins[:n]
-	return gaugeGain
+	return gaugeGain, coinCollecteds
 }
