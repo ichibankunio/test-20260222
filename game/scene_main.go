@@ -252,6 +252,10 @@ func drawGaugeShell(screen *ebiten.Image, x, y, width, height, levelBoxWidth, ne
 	centerW := width - levelW - nextW
 	centerH := clamp(height*centerRate, 1, height)
 	centerY := y + (height-centerH)/2
+	if centerW > centerH && nextW > 0 {
+		drawGaugeShellPath(screen, x, y, width, height, levelW, nextW, centerY, centerH, c)
+		return
+	}
 
 	drawRoundedRect(screen, x, y, levelW, height, 3.0, c)
 	if nextW > 0 {
@@ -270,29 +274,43 @@ func drawGaugeShellPath(screen *ebiten.Image, x, y, width, height, levelW, nextW
 	leftJoin := x + levelW
 	rightJoin := right - nextW
 	pipeR := centerH / 2
-	pipeMidY := centerY + pipeR
 	pipeTop := centerY
 	pipeBottom := centerY + centerH
 	leftR := clamp(3.0, 0, min(levelW, height)/2)
 	rightR := clamp(3.0, 0, min(nextW, height)/2)
+	neck := pipeR * 0.22
 
 	var p vector.Path
 	p.MoveTo(float32(left+leftR), float32(top))
 	p.LineTo(float32(leftJoin), float32(top))
-	p.LineTo(float32(leftJoin), float32(pipeMidY))
-	p.Arc(float32(leftJoin+pipeR), float32(pipeMidY), float32(pipeR), float32(math.Pi), float32(3*math.Pi/2), vector.CounterClockwise)
+	p.CubicTo(
+		float32(leftJoin+neck), float32(top),
+		float32(leftJoin+pipeR-neck), float32(pipeTop),
+		float32(leftJoin+pipeR), float32(pipeTop),
+	)
 	p.LineTo(float32(rightJoin-pipeR), float32(pipeTop))
-	p.Arc(float32(rightJoin-pipeR), float32(pipeMidY), float32(pipeR), float32(3*math.Pi/2), 0, vector.CounterClockwise)
+	p.CubicTo(
+		float32(rightJoin-pipeR+neck), float32(pipeTop),
+		float32(rightJoin-neck), float32(top),
+		float32(rightJoin), float32(top),
+	)
 	p.LineTo(float32(rightJoin), float32(top))
 	p.LineTo(float32(right-rightR), float32(top))
 	p.Arc(float32(right-rightR), float32(top+rightR), float32(rightR), float32(3*math.Pi/2), 0, vector.CounterClockwise)
 	p.LineTo(float32(right), float32(bottom-rightR))
 	p.Arc(float32(right-rightR), float32(bottom-rightR), float32(rightR), 0, float32(math.Pi/2), vector.CounterClockwise)
 	p.LineTo(float32(rightJoin), float32(bottom))
-	p.LineTo(float32(rightJoin), float32(pipeMidY))
-	p.Arc(float32(rightJoin-pipeR), float32(pipeMidY), float32(pipeR), 0, float32(math.Pi/2), vector.CounterClockwise)
+	p.CubicTo(
+		float32(rightJoin-neck), float32(bottom),
+		float32(rightJoin-pipeR+neck), float32(pipeBottom),
+		float32(rightJoin-pipeR), float32(pipeBottom),
+	)
 	p.LineTo(float32(leftJoin+pipeR), float32(pipeBottom))
-	p.Arc(float32(leftJoin+pipeR), float32(pipeMidY), float32(pipeR), float32(math.Pi/2), float32(math.Pi), vector.CounterClockwise)
+	p.CubicTo(
+		float32(leftJoin+pipeR-neck), float32(pipeBottom),
+		float32(leftJoin+neck), float32(bottom),
+		float32(leftJoin), float32(bottom),
+	)
 	p.LineTo(float32(leftJoin), float32(bottom))
 	p.LineTo(float32(left+leftR), float32(bottom))
 	p.Arc(float32(left+leftR), float32(bottom-leftR), float32(leftR), float32(math.Pi/2), float32(math.Pi), vector.CounterClockwise)
