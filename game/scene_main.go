@@ -38,6 +38,8 @@ type projectile struct {
 	vy     float64
 	radius float64
 	value  float64
+	homing float64
+	life   int
 }
 
 func (s *MainScene) Init(_ *flib.Game) {
@@ -115,6 +117,7 @@ var (
 const (
 	playerMoveMargin = 10.0
 	stageGaugeMax    = 100.0
+	stageCycleCount  = 10
 )
 
 func (s *MainScene) reset() {
@@ -197,58 +200,180 @@ func (s *MainScene) clampPlayer() {
 }
 
 func (s *MainScene) spawnStagePattern() {
-	switch (s.stage - 1) % 3 {
+	switch stageNumber(s.stage) {
 	case 0:
 		s.spawnStage1()
 	case 1:
 		s.spawnStage2()
-	default:
+	case 2:
 		s.spawnStage3()
+	case 3:
+		s.spawnStage4()
+	case 4:
+		s.spawnStage5()
+	case 5:
+		s.spawnStage6()
+	case 6:
+		s.spawnStage7()
+	case 7:
+		s.spawnStage8()
+	case 8:
+		s.spawnStage9()
+	default:
+		s.spawnStage10()
 	}
 }
 
 func (s *MainScene) spawnStage1() {
-	if s.stageFrame%28 == 0 {
-		s.spawnSpread(ScreenWidth/2, -8, 1.35, []float64{70, 82, 94, 106, 118})
+	if s.stageFrame%34 == 0 {
+		s.spawnSpread(ScreenWidth/2, -8, 1.05, []float64{76, 90, 104})
 	}
-	if s.stageFrame%54 == 22 {
-		s.spawnSpread(-8, 86, 1.10, []float64{18, 30, 42})
-		s.spawnSpread(ScreenWidth+8, 126, 1.10, []float64{138, 150, 162})
+	if s.stageFrame%68 == 20 {
+		s.spawnSpread(-8, 92, 0.95, []float64{18, 30})
+		s.spawnSpread(ScreenWidth+8, 122, 0.95, []float64{150, 162})
 	}
-	if s.stageFrame%66 == 10 {
-		xs := []float64{24, 48, 72, 96, 120, 84, 60}
-		s.spawnCoin(xs[(s.stageFrame/66)%len(xs)], -6, 0, 0.95, 20)
+	if s.stageFrame%60 == 12 {
+		xs := []float64{24, 48, 72, 96, 120, 96, 72, 48}
+		s.spawnCoin(xs[(s.stageFrame/60)%len(xs)], -6, 0, 0.88, 25)
 	}
 }
 
 func (s *MainScene) spawnStage2() {
-	if s.stageFrame%24 == 0 {
-		s.spawnSpread(10, -8, 1.50, []float64{62, 76, 90})
-		s.spawnSpread(ScreenWidth-10, -8, 1.50, []float64{90, 104, 118})
+	// Arithmetic sequence lanes: x = 12 + 20*n (mod 6)
+	if s.stageFrame%22 == 0 {
+		idx := (s.stageFrame / 22) % 6
+		x := 12.0 + float64(idx)*20.0
+		s.spawnSpread(x, -8, 1.08, []float64{82, 90, 98})
 	}
-	if s.stageFrame%42 == 18 {
-		y := 72.0 + float64((s.stageFrame/42)%4)*28.0
-		s.spawnSpread(-8, y, 1.22, []float64{15, 27})
-		s.spawnSpread(ScreenWidth+8, y+14, 1.22, []float64{153, 165})
+	if s.stageFrame%44 == 12 {
+		y := 66.0 + float64((s.stageFrame/44)%4)*30.0
+		s.spawnSpread(-8, y, 0.98, []float64{18})
+		s.spawnSpread(ScreenWidth+8, y+14, 0.98, []float64{162})
 	}
-	if s.stageFrame%58 == 16 {
-		xs := []float64{18, 126, 36, 108, 54, 90, 72}
-		s.spawnCoin(xs[(s.stageFrame/58)%len(xs)], -6, 0, 1.05, 20)
+	if s.stageFrame%56 == 16 {
+		xs := []float64{18, 126, 38, 106, 58, 86, 72}
+		s.spawnCoin(xs[(s.stageFrame/56)%len(xs)], -6, 0, 0.94, 22)
 	}
 }
 
 func (s *MainScene) spawnStage3() {
-	if s.stageFrame%18 == 0 {
-		start := float64((s.stageFrame / 18 % 10) * 14)
-		s.spawnSpread(start+2, -8, 1.65, []float64{74, 90, 106})
-		s.spawnSpread(ScreenWidth-start-2, -8, 1.65, []float64{74, 90, 106})
-	}
-	if s.stageFrame%38 == 8 {
-		s.spawnSpread(ScreenWidth/2, 36, 1.35, []float64{188, 202, 216, 324, 338, 352})
+	// Fibonacci-ish lanes: 13, 21, 34, 55, 89 -> wrapped to field width.
+	if s.stageFrame%26 == 0 {
+		fibX := []float64{13, 21, 34, 55, 89, 123, 68, 42}
+		x := fibX[(s.stageFrame/26)%len(fibX)]
+		s.spawnSpread(x, -8, 1.12, []float64{84, 96})
 	}
 	if s.stageFrame%52 == 24 {
-		xs := []float64{24, 72, 120, 48, 96, 72}
-		s.spawnCoin(xs[(s.stageFrame/52)%len(xs)], -6, 0, 1.15, 20)
+		s.spawnSpread(ScreenWidth/2, 42, 1.08, []float64{202, 338})
+	}
+	if s.stageFrame%54 == 20 {
+		xs := []float64{24, 48, 72, 96, 120, 96, 72}
+		s.spawnCoin(xs[(s.stageFrame/54)%len(xs)], -6, 0, 1.0, 20)
+	}
+}
+
+func (s *MainScene) spawnStage4() {
+	// Slow rotating ring (bullet-hell style but sparse).
+	if s.stageFrame%18 == 0 {
+		offset := float64((s.stageFrame / 18 * 9) % 360)
+		s.spawnRing(ScreenWidth/2, 36, 0.95, 8, offset)
+	}
+	if s.stageFrame%62 == 22 {
+		s.spawnCoin(ScreenWidth/2, -6, 0, 0.9, 24)
+	}
+}
+
+func (s *MainScene) spawnStage5() {
+	if s.stageFrame%20 == 0 {
+		step := (s.stageFrame / 20) % 10
+		x := 8.0 + float64(step)*14.0
+		s.spawnSpread(x, -8, 1.15, []float64{86, 94})
+		s.spawnSpread(ScreenWidth-x, -8, 1.15, []float64{86, 94})
+	}
+	if s.stageFrame%48 == 12 {
+		y := 70.0 + float64((s.stageFrame/48)%3)*34.0
+		s.spawnSpread(-8, y, 1.0, []float64{14})
+		s.spawnSpread(ScreenWidth+8, y+10, 1.0, []float64{166})
+	}
+	if s.stageFrame%56 == 18 {
+		xs := []float64{30, 114, 42, 102, 54, 90, 66, 78}
+		s.spawnCoin(xs[(s.stageFrame/56)%len(xs)], -6, 0, 1.04, 20)
+	}
+}
+
+func (s *MainScene) spawnStage6() {
+	if s.stageFrame%38 == 0 {
+		x := 20.0 + float64((s.stageFrame/38)%6)*20
+		s.spawnHoming(x, -8, 0.95, 0.05, 70)
+	}
+	if s.stageFrame%18 == 8 {
+		s.spawnSpread(ScreenWidth/2, -8, 1.05, []float64{74, 90, 106})
+	}
+	if s.stageFrame%60 == 20 {
+		xs := []float64{20, 44, 68, 92, 116, 92, 68, 44}
+		s.spawnCoin(xs[(s.stageFrame/60)%len(xs)], -6, 0, 0.92, 24)
+	}
+}
+
+func (s *MainScene) spawnStage7() {
+	if s.stageFrame%16 == 0 {
+		offset := float64((s.stageFrame / 16 * 7) % 360)
+		s.spawnRing(ScreenWidth/2, 20, 1.0, 10, offset)
+	}
+	if s.stageFrame%54 == 18 {
+		s.spawnAimedSpread(ScreenWidth/2, 28, 1.08, []float64{-14, 0, 14})
+	}
+	if s.stageFrame%58 == 22 {
+		xs := []float64{24, 120, 36, 108, 48, 96, 60, 84}
+		s.spawnCoin(xs[(s.stageFrame/58)%len(xs)], -6, 0, 1.0, 20)
+	}
+}
+
+func (s *MainScene) spawnStage8() {
+	if s.stageFrame%24 == 0 {
+		s.spawnAimedSpread(12, 30, 1.02, []float64{-12, 12})
+		s.spawnAimedSpread(ScreenWidth-12, 30, 1.02, []float64{-12, 12})
+	}
+	if s.stageFrame%44 == 14 {
+		offset := float64((s.stageFrame / 44 * 15) % 360)
+		s.spawnRing(ScreenWidth/2, 54, 0.92, 7, offset)
+	}
+	if s.stageFrame%52 == 18 {
+		xs := []float64{18, 36, 54, 72, 90, 108, 126}
+		s.spawnCoin(xs[(s.stageFrame/52)%len(xs)], -6, 0, 1.04, 20)
+	}
+}
+
+func (s *MainScene) spawnStage9() {
+	if s.stageFrame%14 == 0 {
+		turn := float64((s.stageFrame / 14) % 72)
+		s.spawnSpread(ScreenWidth/2, 18, 1.04, []float64{
+			60 + turn*5,
+			120 + turn*5,
+		})
+	}
+	if s.stageFrame%46 == 14 {
+		s.spawnSpread(-8, 84, 1.0, []float64{14, 26})
+		s.spawnSpread(ScreenWidth+8, 112, 1.0, []float64{154, 166})
+	}
+	if s.stageFrame%56 == 12 {
+		xs := []float64{24, 48, 72, 96, 120, 96, 72, 48}
+		s.spawnCoin(xs[(s.stageFrame/56)%len(xs)], -6, 0, 0.96, 22)
+	}
+}
+
+func (s *MainScene) spawnStage10() {
+	if s.stageFrame%18 == 0 {
+		offset := float64((s.stageFrame / 18 * 11) % 360)
+		s.spawnRing(ScreenWidth/2, 22, 1.08, 12, offset)
+	}
+	if s.stageFrame%42 == 10 {
+		s.spawnHoming(20, -8, 1.0, 0.045, 80)
+		s.spawnHoming(ScreenWidth-20, -8, 1.0, 0.045, 80)
+	}
+	if s.stageFrame%52 == 22 {
+		xs := []float64{30, 114, 42, 102, 54, 90, 66, 78, 72}
+		s.spawnCoin(xs[(s.stageFrame/52)%len(xs)], -6, 0, 1.05, 20)
 	}
 }
 
@@ -260,9 +385,43 @@ func (s *MainScene) spawnSpread(x, y, speed float64, angles []float64) {
 			y:      y,
 			vx:     math.Cos(rad) * speed,
 			vy:     math.Sin(rad) * speed,
-			radius: 4.6,
+			radius: 4.0,
 		})
 	}
+}
+
+func (s *MainScene) spawnRing(x, y, speed float64, count int, offsetDeg float64) {
+	if count <= 0 {
+		return
+	}
+	angles := make([]float64, 0, count)
+	step := 360.0 / float64(count)
+	for i := range count {
+		angles = append(angles, offsetDeg+float64(i)*step)
+	}
+	s.spawnSpread(x, y, speed, angles)
+}
+
+func (s *MainScene) spawnAimedSpread(x, y, speed float64, offsets []float64) {
+	base := math.Atan2(s.playerY-y, s.playerX-x) * 180 / math.Pi
+	angles := make([]float64, 0, len(offsets))
+	for _, off := range offsets {
+		angles = append(angles, base+off)
+	}
+	s.spawnSpread(x, y, speed, angles)
+}
+
+func (s *MainScene) spawnHoming(x, y, speed, homing float64, life int) {
+	angle := math.Atan2(s.playerY-y, s.playerX-x)
+	s.bullets = append(s.bullets, projectile{
+		x:      x,
+		y:      y,
+		vx:     math.Cos(angle) * speed,
+		vy:     math.Sin(angle) * speed,
+		radius: 4.2,
+		homing: homing,
+		life:   life,
+	})
 }
 
 func (s *MainScene) spawnCoin(x, y, vx, vy, value float64) {
@@ -271,6 +430,21 @@ func (s *MainScene) spawnCoin(x, y, vx, vy, value float64) {
 
 func (s *MainScene) moveProjectiles() {
 	for i := range s.bullets {
+		if s.bullets[i].homing > 0 && s.bullets[i].life != 0 {
+			dx := s.playerX - s.bullets[i].x
+			dy := s.playerY - s.bullets[i].y
+			dist := math.Hypot(dx, dy)
+			if dist > 0.001 {
+				speed := math.Hypot(s.bullets[i].vx, s.bullets[i].vy)
+				targetVX := dx / dist * speed
+				targetVY := dy / dist * speed
+				s.bullets[i].vx = lerp(s.bullets[i].vx, targetVX, s.bullets[i].homing)
+				s.bullets[i].vy = lerp(s.bullets[i].vy, targetVY, s.bullets[i].homing)
+			}
+			if s.bullets[i].life > 0 {
+				s.bullets[i].life--
+			}
+		}
 		s.bullets[i].x += s.bullets[i].vx
 		s.bullets[i].y += s.bullets[i].vy
 	}
@@ -385,6 +559,17 @@ func clamp(v, minV, maxV float64) float64 {
 		return maxV
 	}
 	return v
+}
+
+func lerp(a, b, t float64) float64 {
+	return a + (b-a)*clamp(t, 0, 1)
+}
+
+func stageNumber(stage int) int {
+	if stage <= 0 {
+		return 0
+	}
+	return (stage - 1) % stageCycleCount
 }
 
 func isJumpInputJustPressed() bool {
