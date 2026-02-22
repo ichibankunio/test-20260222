@@ -10,9 +10,9 @@ func newStage10Danmaku() Danmaku {
 			d.spawnHoming(20, -8, 1.0, 0.045, 80, playerX, playerY)
 			d.spawnHoming(ScreenWidth-20, -8, 1.0, 0.045, 80, playerX, playerY)
 		}
-		if frame%52 == 22 {
+		if frame%17 == 5 {
 			xs := []float64{30, 114, 42, 102, 54, 90, 66, 78, 72}
-			d.spawnCoin(xs[(frame/52)%len(xs)], -6, 0, 1.05, 20)
+			d.spawnCoin(xs[(frame/17)%len(xs)], -6, 0, 1.05, 20)
 		}
 	})
 }
