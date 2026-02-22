@@ -18,6 +18,7 @@ type MainScene struct {
 	playerRadius float64
 	stage        int
 	gauge        float64
+	invincible   bool
 	gameOver     bool
 	danmaku      Danmaku
 	particles    impactParticleSystem
@@ -48,6 +49,9 @@ func (s *MainScene) Update(_ *flib.Game) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return fmt.Errorf("exit")
 	}
+	if s.handleDebugToggleInput() {
+		return nil
+	}
 
 	if s.gameOver {
 		if isRestartInputJustPressed() {
@@ -64,6 +68,9 @@ func (s *MainScene) Update(_ *flib.Game) error {
 			s.portrait.onCoinCollected(p.X, p.Y)
 		}
 		if tick.Hit {
+			if s.invincible {
+				return nil
+			}
 			s.particles.spawnPlayerBurst(s.playerX, s.playerY)
 			s.gameOver = true
 			if se := FirstSE(); len(se) > 0 {
@@ -93,6 +100,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 
 	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
 	drawUITextAt(screen, fmt.Sprintf("ART %02d%%", int(s.portrait.completionRate()*100)), 82, 4)
+	drawDebugButton(screen, s.invincible)
 	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
 	drawUITextAt(screen, "ESC: EXIT", 4, 28)
 	if s.gameOver {
@@ -127,6 +135,10 @@ const (
 	playerMoveMargin = 10.0
 	stageGaugeMax    = 100.0
 	stageCycleCount  = 10
+	debugBtnW        = 52.0
+	debugBtnH        = 14.0
+	debugBtnX        = ScreenWidth - debugBtnW - 4.0
+	debugBtnY        = 4.0
 )
 
 func (s *MainScene) reset() {
@@ -145,6 +157,31 @@ func (s *MainScene) retryStage() {
 	s.gauge = 0
 	s.particles.reset()
 	s.startStage()
+}
+
+func (s *MainScene) handleDebugToggleInput() bool {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		gx, gy := s.toGamePosition(x, y)
+		if isInDebugButton(gx, gy) {
+			s.invincible = !s.invincible
+			s.mouseActive = false
+			s.touchActive = false
+			return true
+		}
+	}
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+		gx, gy := s.toGamePosition(x, y)
+		if isInDebugButton(gx, gy) {
+			s.invincible = !s.invincible
+			s.mouseActive = false
+			s.touchActive = false
+			return true
+		}
+	}
+	return false
 }
 
 func (s *MainScene) startStage() {
@@ -267,6 +304,32 @@ func drawGauge(screen *ebiten.Image, rate float64, stage int) {
 
 	drawUITextCentered(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH), 16)
 	drawUITextCentered(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH), 16)
+}
+
+func drawDebugButton(screen *ebiten.Image, invincible bool) {
+	drawFilledRect(screen, debugBtnX, debugBtnY, debugBtnW, debugBtnH, uiGaugeBase)
+	path := &vector.Path{}
+	path.MoveTo(float32(debugBtnX), float32(debugBtnY))
+	path.LineTo(float32(debugBtnX+debugBtnW), float32(debugBtnY))
+	path.LineTo(float32(debugBtnX+debugBtnW), float32(debugBtnY+debugBtnH))
+	path.LineTo(float32(debugBtnX), float32(debugBtnY+debugBtnH))
+	path.Close()
+	op := &vector.DrawPathOptions{}
+	op.AntiAlias = true
+	op.ColorScale.ScaleWithColor(uiBorder)
+	stroke := &vector.StrokeOptions{}
+	stroke.Width = 2
+	vector.StrokePath(screen, path, stroke, op)
+
+	label := "通常"
+	if invincible {
+		label = "無敵"
+	}
+	drawUITextCentered(screen, "DBG:"+label, int(debugBtnX), int(debugBtnY), int(debugBtnW), int(debugBtnH), 10)
+}
+
+func isInDebugButton(x, y float64) bool {
+	return x >= debugBtnX && x <= debugBtnX+debugBtnW && y >= debugBtnY && y <= debugBtnY+debugBtnH
 }
 
 func drawUITextAt(screen *ebiten.Image, body string, x, y int) {
