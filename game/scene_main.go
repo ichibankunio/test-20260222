@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -29,6 +30,7 @@ type MainScene struct {
 	mouseActive  bool
 	lastMouseX   float64
 	lastMouseY   float64
+	perfProbe    framePerfProbe
 }
 
 func (s *MainScene) Init(_ *flib.Game) {
@@ -42,11 +44,23 @@ func (s *MainScene) Init(_ *flib.Game) {
 func (s *MainScene) Start(_ *flib.Game) {}
 
 func (s *MainScene) Update(_ *flib.Game) error {
-	s.particles.update()
-	s.portrait.update()
+	if s.perfProbe.enabled {
+		start := time.Now()
+		defer s.perfProbe.updateTotal.update(time.Since(start))
+	}
+
+	s.perfProbe.measure(&s.perfProbe.updateParticles, func() {
+		s.particles.update()
+	})
+	s.perfProbe.measure(&s.perfProbe.updatePortrait, func() {
+		s.portrait.update()
+	})
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return fmt.Errorf("exit")
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
+		s.perfProbe.enabled = !s.perfProbe.enabled
 	}
 	if s.handleDebugToggleInput() {
 		return nil
@@ -61,7 +75,10 @@ func (s *MainScene) Update(_ *flib.Game) error {
 
 	s.updatePlayerFromSwipe()
 	if s.danmaku != nil {
-		tick := s.danmaku.Update(s.playerX, s.playerY, s.playerRadius, s.invincible)
+		var tick DanmakuTick
+		s.perfProbe.measure(&s.perfProbe.updateDanmaku, func() {
+			tick = s.danmaku.Update(s.playerX, s.playerY, s.playerRadius, s.invincible)
+		})
 		for _, p := range tick.CoinCollecteds {
 			s.particles.spawnCoinPickup(p.X, p.Y)
 			s.portrait.onCoinCollected(p.X, p.Y)
@@ -90,27 +107,41 @@ func (s *MainScene) Update(_ *flib.Game) error {
 }
 
 func (s *MainScene) Draw(screen *ebiten.Image) {
-	screen.Fill(bgNight)
-	drawBackdrop(screen)
-	s.portrait.draw(screen)
-	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
-	if !s.gameOver {
-		drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
-	}
-	if s.danmaku != nil {
-		s.danmaku.Draw(screen)
-	}
-	s.particles.draw(screen)
+	s.perfProbe.measure(&s.perfProbe.drawTotal, func() {
+		screen.Fill(bgNight)
+		s.perfProbe.measure(&s.perfProbe.drawBackdrop, func() {
+			drawBackdrop(screen)
+		})
+		s.perfProbe.measure(&s.perfProbe.drawPortrait, func() {
+			s.portrait.draw(screen)
+		})
+		drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
+		if !s.gameOver {
+			drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
+		}
+		if s.danmaku != nil {
+			s.perfProbe.measure(&s.perfProbe.drawDanmaku, func() {
+				s.danmaku.Draw(screen)
+			})
+		}
+		s.perfProbe.measure(&s.perfProbe.drawParticles, func() {
+			s.particles.draw(screen)
+		})
 
-	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
-	drawUITextAt(screen, fmt.Sprintf("ART %02d%%", int(s.portrait.completionRate()*100)), 82, 4)
-	drawDebugButton(screen, s.invincible)
-	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
-	drawUITextAt(screen, "ESC: EXIT", 4, 28)
-	if s.gameOver {
-		drawUITextCentered(screen, "GAME OVER", 0, 112, ScreenWidth, 12, 16)
-		drawUITextCentered(screen, "TAP/SPACE: RETRY", 0, 128, ScreenWidth, 12, 12)
-	}
+		s.perfProbe.measure(&s.perfProbe.drawUI, func() {
+			drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
+			drawUITextAt(screen, fmt.Sprintf("ART %02d%%", int(s.portrait.completionRate()*100)), 82, 4)
+			drawDebugButton(screen, s.invincible)
+			drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
+			drawUITextAt(screen, "ESC: EXIT", 4, 28)
+			drawUITextAt(screen, "F3: PERF HUD", 4, 40)
+			if s.gameOver {
+				drawUITextCentered(screen, "GAME OVER", 0, 112, ScreenWidth, 12, 16)
+				drawUITextCentered(screen, "TAP/SPACE: RETRY", 0, 128, ScreenWidth, 12, 12)
+			}
+		})
+	})
+	s.drawPerfHUD(screen)
 }
 
 var (
@@ -416,3 +447,16 @@ func isRestartInputJustPressed() bool {
 func (s *MainScene) GetStatus() int { return 0 }
 
 func (s *MainScene) GetID() flib.SceneID { return SceneMain }
+
+func (s *MainScene) drawPerfHUD(screen *ebiten.Image) {
+	if !s.perfProbe.enabled {
+		return
+	}
+	bullets, coins := danmakuProjectileCounts(s.danmaku)
+	drawUITextAt(screen, fmt.Sprintf("PERF avg/max ms (target %.2f)", frameBudgetMs), 4, 184)
+	drawUITextAt(screen, fmt.Sprintf("upd: %.2f/%.2f (dan %.2f)", s.perfProbe.updateTotal.avgMs, s.perfProbe.updateTotal.maxMs, s.perfProbe.updateDanmaku.avgMs), 4, 196)
+	drawUITextAt(screen, fmt.Sprintf("drw: %.2f/%.2f (bg %.2f dan %.2f)", s.perfProbe.drawTotal.avgMs, s.perfProbe.drawTotal.maxMs, s.perfProbe.drawBackdrop.avgMs, s.perfProbe.drawDanmaku.avgMs), 4, 208)
+	drawUITextAt(screen, fmt.Sprintf("prt: u%.2f d%.2f shd:%d", s.perfProbe.updatePortrait.avgMs, s.perfProbe.drawPortrait.avgMs, len(s.portrait.shards)), 4, 220)
+	drawUITextAt(screen, fmt.Sprintf("ptc: u%.2f d%.2f n:%d", s.perfProbe.updateParticles.avgMs, s.perfProbe.drawParticles.avgMs, len(s.particles.items)), 4, 232)
+	drawUITextAt(screen, fmt.Sprintf("blt:%d coin:%d", bullets, coins), 4, 244)
+}

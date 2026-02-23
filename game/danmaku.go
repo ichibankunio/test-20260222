@@ -206,3 +206,11 @@ func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) (flo
 	d.coins = d.coins[:n]
 	return gaugeGain, coinCollecteds
 }
+
+func danmakuProjectileCounts(d Danmaku) (bullets, coins int) {
+	stage, ok := d.(*stageDanmaku)
+	if !ok || stage == nil {
+		return 0, 0
+	}
+	return len(stage.bullets), len(stage.coins)
+}
