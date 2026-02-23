@@ -58,7 +58,8 @@ jobs:
         with:
           script: |
             const url = process.env.PREVIEW_URL;
-            const body = `Preview deployed: ${url}`;
+            const mention = `@${context.repo.owner}`;
+            const body = `${mention} Preview deployed: ${url}`;
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

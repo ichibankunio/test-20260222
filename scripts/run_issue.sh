@@ -31,6 +31,8 @@ fi
 REPO="${REPO:-$(gh repo view --json nameWithOwner --jq .nameWithOwner)}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
 BRANCH="codex/issue-${ISSUE_NUMBER}"
+REPO_OWNER="${REPO%%/*}"
+REVIEWER_MENTION="${REVIEWER_MENTION:-@${REPO_OWNER}}"
 TMP_DIR="$(mktemp -d)"
 PROMPT_FILE="${TMP_DIR}/prompt.txt"
 RESPONSE_FILE="${TMP_DIR}/response.txt"
@@ -160,7 +162,7 @@ run_codex_exec "${PLAN_RESPONSE_FILE}" "${PLAN_PROMPT_FILE}"
 QUESTION_TEXT="$(sed -n 's/^QUESTION_FOR_ISSUE:[[:space:]]*//p' "${PLAN_RESPONSE_FILE}" | head -n 1)"
 if [[ -n "${QUESTION_TEXT}" ]]; then
   QUESTION_COMMENT_BODY="$(cat <<EOF
-Codex question before implementation:
+${REVIEWER_MENTION} Codex question before implementation:
 
 ${QUESTION_TEXT}
 
