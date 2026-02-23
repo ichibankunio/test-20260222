@@ -99,6 +99,10 @@ func (p *impactParticleSystem) spawnCoinPickup(x, y float64) {
 	p.spawnRadial(x, y, 10, 1.8, 3.6, 0.8, 1.5, 12, 24, [2][4]float32{colorToFloat32(coinMain), colorToFloat32(coinAccent)})
 }
 
+func (p *impactParticleSystem) spawnBulletImpact(x, y float64) {
+	p.spawnRadial(x, y, 10, 0.2, 1.4, 0.7, 1.5, 10, 18, [2][4]float32{colorToFloat32(enemyBullet), colorToFloat32(enemyBulletIn)})
+}
+
 func (p *impactParticleSystem) spawnRadial(x, y float64, count int, speedMin, speedMax, radiusMin, radiusMax float64, lifeMin, lifeMax int, palette [2][4]float32) {
 	if count <= 0 {
 		return
