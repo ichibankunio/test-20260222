@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -121,15 +120,7 @@ var (
 	enemyBulletIn = color.RGBA{R: 175, G: 255, B: 245, A: 255}
 	coinMain      = color.RGBA{R: 255, G: 73, B: 73, A: 255}
 	coinAccent    = color.RGBA{R: 255, G: 195, B: 80, A: 255}
-	coinPixels    []coinPixel
-	coinPXSize    = 2.0
 )
-
-type coinPixel struct {
-	dx  float64
-	dy  float64
-	col color.RGBA
-}
 
 const (
 	playerMoveMargin = 10.0
@@ -365,66 +356,12 @@ func drawBullets(screen *ebiten.Image, bullets []projectile) {
 }
 
 func drawCoins(screen *ebiten.Image, coins []projectile) {
-	if len(coinPixels) == 0 {
-		coinPixels = buildCoinPixels(6, coinPXSize)
-	}
-	if len(coinPixels) == 0 {
-		for _, c := range coins {
-			vector.DrawFilledCircle(screen, float32(c.x), float32(c.y), float32(c.radius), coinMain, true)
-			vector.DrawFilledCircle(screen, float32(c.x), float32(c.y), float32(c.radius*0.55), coinAccent, true)
-		}
+	if globalCoinShaderRenderer.draw(screen, coins) {
 		return
 	}
 	for _, c := range coins {
-		scale := c.radius / 6.0
-		size := coinPXSize * scale
-		for _, px := range coinPixels {
-			drawFilledRect(screen, c.x+px.dx*scale, c.y+px.dy*scale, size, size, px.col)
-		}
+		vector.DrawFilledCircle(screen, float32(c.x), float32(c.y), float32(c.radius), coinMain, true)
 	}
-}
-
-func buildCoinPixels(radius, pxSize float64) []coinPixel {
-	src := GetImage("bishonen.png")
-	if src == nil {
-		src = GetImage("zentablue.png")
-	}
-	if src == nil || pxSize <= 0 || radius <= 0 {
-		return nil
-	}
-	b := src.Bounds()
-	w := b.Dx()
-	h := b.Dy()
-	if w <= 0 || h <= 0 {
-		return nil
-	}
-
-	pixels := make([]coinPixel, 0, int(math.Pi*radius*radius/(pxSize*pxSize)))
-	diameter := radius * 2
-	for y := -radius; y < radius; y += pxSize {
-		for x := -radius; x < radius; x += pxSize {
-			cx := x + pxSize*0.5
-			cy := y + pxSize*0.5
-			if cx*cx+cy*cy > radius*radius {
-				continue
-			}
-
-			u := clamp((cx+radius)/diameter, 0, 1)
-			v := clamp((cy+radius)/diameter, 0, 1)
-			sx := int(u * float64(w-1))
-			sy := int(v * float64(h-1))
-			col := color.RGBAModel.Convert(src.At(b.Min.X+sx, b.Min.Y+sy)).(color.RGBA)
-			if col.A < 8 {
-				continue
-			}
-			pixels = append(pixels, coinPixel{
-				dx:  x - pxSize*0.5,
-				dy:  y - pxSize*0.5,
-				col: col,
-			})
-		}
-	}
-	return pixels
 }
 
 func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
