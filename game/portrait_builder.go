@@ -33,6 +33,8 @@ type portraitBuilder struct {
 	unfilled       []int
 	shards         []portraitShard
 	drawPixels     []portraitDrawPixel
+	filledLayer    *ebiten.Image
+	pendingFilled  []portraitDrawPixel
 	progressFilled int
 }
 
@@ -44,6 +46,7 @@ const (
 
 func newPortraitBuilder() portraitBuilder {
 	p := portraitBuilder{}
+	p.filledLayer = ebiten.NewImage(ScreenWidth, ScreenHeight)
 	src := GetImage("bishonen.png")
 	if src == nil {
 		src = GetImage("zentablue.png")
@@ -96,6 +99,11 @@ func newPortraitBuilder() portraitBuilder {
 
 func (p *portraitBuilder) reset() {
 	p.shards = p.shards[:0]
+	p.drawPixels = p.drawPixels[:0]
+	p.pendingFilled = p.pendingFilled[:0]
+	if p.filledLayer != nil {
+		p.filledLayer.Clear()
+	}
 	p.progressFilled = 0
 	p.unfilled = p.unfilled[:0]
 	for i := range p.pixels {
@@ -171,6 +179,8 @@ func (p *portraitBuilder) fill(idx int) {
 	}
 	p.pixels[idx].filled = true
 	p.progressFilled++
+	px := p.pixels[idx]
+	p.pendingFilled = append(p.pendingFilled, portraitDrawPixel{x: px.x, y: px.y, size: portraitPixelSize, col: px.col})
 	for i := range p.unfilled {
 		if p.unfilled[i] != idx {
 			continue
@@ -183,16 +193,27 @@ func (p *portraitBuilder) fill(idx int) {
 }
 
 func (p *portraitBuilder) draw(screen *ebiten.Image) {
-	p.drawPixels = p.drawPixels[:0]
-	for _, px := range p.pixels {
-		if !px.filled {
-			continue
+	if len(p.pendingFilled) > 0 && p.filledLayer != nil {
+		if globalPortraitPixelShaderRenderer.draw(p.filledLayer, p.pendingFilled) {
+			p.pendingFilled = p.pendingFilled[:0]
+		} else {
+			for _, px := range p.pendingFilled {
+				drawFilledRect(p.filledLayer, px.x, px.y, px.size, px.size, px.col)
+			}
+			p.pendingFilled = p.pendingFilled[:0]
 		}
-		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: px.x, y: px.y, size: portraitPixelSize, col: px.col})
 	}
+	if p.filledLayer != nil {
+		screen.DrawImage(p.filledLayer, nil)
+	}
+
+	p.drawPixels = p.drawPixels[:0]
 	for _, shard := range p.shards {
 		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x, y: shard.y, size: 1, col: shard.col})
 		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x + shard.marbleDX, y: shard.y + shard.marbleDY, size: 1, col: shard.marbleCol})
+	}
+	if len(p.drawPixels) == 0 {
+		return
 	}
 	if globalPortraitPixelShaderRenderer.draw(screen, p.drawPixels) {
 		return
