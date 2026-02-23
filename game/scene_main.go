@@ -94,7 +94,9 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	drawBackdrop(screen)
 	s.portrait.draw(screen)
 	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
-	drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
+	if !s.gameOver {
+		drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
+	}
 	if s.danmaku != nil {
 		s.danmaku.Draw(screen)
 	}
