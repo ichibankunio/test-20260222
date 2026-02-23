@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"log"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -61,6 +62,8 @@ func (s *MainScene) Update(_ *flib.Game) error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
 		s.perfProbe.enabled = !s.perfProbe.enabled
+		s.perfProbe.lastLog = time.Time{}
+		log.Printf("[PERF] logging %s", map[bool]string{true: "enabled", false: "disabled"}[s.perfProbe.enabled])
 	}
 	if s.handleDebugToggleInput() {
 		return nil
@@ -134,14 +137,14 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 			drawDebugButton(screen, s.invincible)
 			drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
 			drawUITextAt(screen, "ESC: EXIT", 4, 28)
-			drawUITextAt(screen, "F3: PERF HUD", 4, 40)
+			drawUITextAt(screen, "F3: PERF LOG", 4, 40)
 			if s.gameOver {
 				drawUITextCentered(screen, "GAME OVER", 0, 112, ScreenWidth, 12, 16)
 				drawUITextCentered(screen, "TAP/SPACE: RETRY", 0, 128, ScreenWidth, 12, 12)
 			}
 		})
 	})
-	s.drawPerfHUD(screen)
+	s.logPerfReport()
 }
 
 var (
@@ -448,15 +451,11 @@ func (s *MainScene) GetStatus() int { return 0 }
 
 func (s *MainScene) GetID() flib.SceneID { return SceneMain }
 
-func (s *MainScene) drawPerfHUD(screen *ebiten.Image) {
-	if !s.perfProbe.enabled {
+func (s *MainScene) logPerfReport() {
+	bullets, coins := danmakuProjectileCounts(s.danmaku)
+	report := s.perfProbe.formatLogReport(bullets, coins, len(s.particles.items), len(s.portrait.shards))
+	if report == "" {
 		return
 	}
-	bullets, coins := danmakuProjectileCounts(s.danmaku)
-	drawUITextAt(screen, fmt.Sprintf("PERF avg/max ms (target %.2f)", frameBudgetMs), 4, 184)
-	drawUITextAt(screen, fmt.Sprintf("upd: %.2f/%.2f (dan %.2f)", s.perfProbe.updateTotal.avgMs, s.perfProbe.updateTotal.maxMs, s.perfProbe.updateDanmaku.avgMs), 4, 196)
-	drawUITextAt(screen, fmt.Sprintf("drw: %.2f/%.2f (bg %.2f dan %.2f)", s.perfProbe.drawTotal.avgMs, s.perfProbe.drawTotal.maxMs, s.perfProbe.drawBackdrop.avgMs, s.perfProbe.drawDanmaku.avgMs), 4, 208)
-	drawUITextAt(screen, fmt.Sprintf("prt: u%.2f d%.2f shd:%d", s.perfProbe.updatePortrait.avgMs, s.perfProbe.drawPortrait.avgMs, len(s.portrait.shards)), 4, 220)
-	drawUITextAt(screen, fmt.Sprintf("ptc: u%.2f d%.2f n:%d", s.perfProbe.updateParticles.avgMs, s.perfProbe.drawParticles.avgMs, len(s.particles.items)), 4, 232)
-	drawUITextAt(screen, fmt.Sprintf("blt:%d coin:%d", bullets, coins), 4, 244)
+	log.Print(report)
 }
