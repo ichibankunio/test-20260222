@@ -94,8 +94,9 @@ func portraitPixelVertex(dstX, dstY float32, col [4]float32) ebiten.Vertex {
 	return ebiten.Vertex{
 		DstX:   dstX,
 		DstY:   dstY,
-		SrcX:   1,
-		SrcY:   1,
+		// Sample the center texel of the 1x1 white source image.
+		SrcX:   0.5,
+		SrcY:   0.5,
 		ColorR: col[0],
 		ColorG: col[1],
 		ColorB: col[2],
