@@ -32,6 +32,7 @@ type portraitBuilder struct {
 	pixels         []portraitPixel
 	unfilled       []int
 	shards         []portraitShard
+	drawPixels     []portraitDrawPixel
 	progressFilled int
 }
 
@@ -61,34 +62,21 @@ func newPortraitBuilder() portraitBuilder {
 		return p
 	}
 
-	maxW := 96.0
-	maxH := 160.0
-	scale := math.Min(maxW/float64(sw), maxH/float64(sh))
-	if scale <= 0 {
-		scale = 1
-	}
-	targetW := float64(sw) * scale
-	targetH := float64(sh) * scale
-	left := (ScreenWidth - targetW) * 0.5
-	top := 70.0
-	if top+targetH > ScreenHeight-8 {
-		top = ScreenHeight - 8 - targetH
-	}
+	targetW := float64(ScreenWidth)
+	targetH := float64(ScreenHeight)
+	left := 0.0
+	top := 0.0
 
 	const pxSize = 2
 	targetStep := float64(pxSize)
 	capacity := int((targetW / targetStep) * (targetH / targetStep))
 	pixels := make([]portraitPixel, 0, capacity)
 	for ty := 0.0; ty < targetH; ty += targetStep {
-		sy := int(ty / scale)
-		if sy < 0 || sy >= sh {
-			continue
-		}
+		sy := int((ty / targetH) * float64(sh))
+		sy = min(max(sy, 0), sh-1)
 		for tx := 0.0; tx < targetW; tx += targetStep {
-			sx := int(tx / scale)
-			if sx < 0 || sx >= sw {
-				continue
-			}
+			sx := int((tx / targetW) * float64(sw))
+			sx = min(max(sx, 0), sw-1)
 			col := color.RGBAModel.Convert(src.At(b.Min.X+sx, b.Min.Y+sy)).(color.RGBA)
 			if col.A < 8 {
 				continue
@@ -195,15 +183,22 @@ func (p *portraitBuilder) fill(idx int) {
 }
 
 func (p *portraitBuilder) draw(screen *ebiten.Image) {
+	p.drawPixels = p.drawPixels[:0]
 	for _, px := range p.pixels {
 		if !px.filled {
 			continue
 		}
-		drawFilledRect(screen, px.x, px.y, 2, 2, px.col)
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: px.x, y: px.y, size: 2, col: px.col})
 	}
 	for _, shard := range p.shards {
-		drawFilledRect(screen, shard.x, shard.y, 1.8, 1.8, shard.col)
-		drawFilledRect(screen, shard.x+shard.marbleDX, shard.y+shard.marbleDY, 0.9, 0.9, shard.marbleCol)
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x, y: shard.y, size: 1.8, col: shard.col})
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x + shard.marbleDX, y: shard.y + shard.marbleDY, size: 0.9, col: shard.marbleCol})
+	}
+	if globalPortraitPixelShaderRenderer.draw(screen, p.drawPixels) {
+		return
+	}
+	for _, px := range p.drawPixels {
+		drawFilledRect(screen, px.x, px.y, px.size, px.size, px.col)
 	}
 }
 
