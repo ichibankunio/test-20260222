@@ -36,10 +36,12 @@ type projectile struct {
 }
 
 type stageDanmaku struct {
-	frame   int
-	bullets []projectile
-	coins   []projectile
-	spawn   func(*stageDanmaku, int, float64, float64)
+	frame             int
+	bullets           []projectile
+	coins             []projectile
+	bulletImpactsBuf  []ImpactPoint
+	coinCollectedsBuf []ImpactPoint
+	spawn             func(*stageDanmaku, int, float64, float64)
 }
 
 func newStageDanmaku(spawn func(*stageDanmaku, int, float64, float64)) Danmaku {
@@ -52,6 +54,8 @@ func (d *stageDanmaku) Reset() {
 	d.frame = 0
 	d.bullets = d.bullets[:0]
 	d.coins = d.coins[:0]
+	d.bulletImpactsBuf = d.bulletImpactsBuf[:0]
+	d.coinCollectedsBuf = d.coinCollectedsBuf[:0]
 }
 
 func (d *stageDanmaku) Update(playerX, playerY, playerRadius float64, invincible bool) DanmakuTick {
@@ -88,21 +92,31 @@ func (d *stageDanmaku) spawnRing(x, y, speed float64, count int, offsetDeg float
 	if count <= 0 {
 		return
 	}
-	angles := make([]float64, 0, count)
 	step := 360.0 / float64(count)
 	for i := range count {
-		angles = append(angles, offsetDeg+float64(i)*step)
+		rad := (offsetDeg + float64(i)*step) * math.Pi / 180
+		d.bullets = append(d.bullets, projectile{
+			x:      x,
+			y:      y,
+			vx:     math.Cos(rad) * speed,
+			vy:     math.Sin(rad) * speed,
+			radius: 4.0,
+		})
 	}
-	d.spawnSpread(x, y, speed, angles)
 }
 
 func (d *stageDanmaku) spawnAimedSpread(x, y, speed float64, offsets []float64, playerX, playerY float64) {
-	base := math.Atan2(playerY-y, playerX-x) * 180 / math.Pi
-	angles := make([]float64, 0, len(offsets))
+	base := math.Atan2(playerY-y, playerX-x)
 	for _, off := range offsets {
-		angles = append(angles, base+off)
+		rad := base + off*math.Pi/180
+		d.bullets = append(d.bullets, projectile{
+			x:      x,
+			y:      y,
+			vx:     math.Cos(rad) * speed,
+			vy:     math.Sin(rad) * speed,
+			radius: 4.0,
+		})
 	}
-	d.spawnSpread(x, y, speed, angles)
 }
 
 func (d *stageDanmaku) spawnHoming(x, y, speed, homing float64, life int, playerX, playerY float64) {
@@ -169,7 +183,7 @@ func keepOnScreen(items []projectile) []projectile {
 func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64, invincible bool) (bool, []ImpactPoint) {
 	n := 0
 	hit := false
-	var impacts []ImpactPoint
+	impacts := d.bulletImpactsBuf[:0]
 	for _, b := range d.bullets {
 		if circlesOverlap(playerX, playerY, playerRadius, b.x, b.y, b.radius) {
 			hit = true
@@ -184,25 +198,31 @@ func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64, in
 	if invincible {
 		d.bullets = d.bullets[:n]
 	}
+	d.bulletImpactsBuf = impacts
 	return hit, impacts
 }
 
 func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) (float64, []ImpactPoint) {
 	n := 0
 	gaugeGain := 0.0
-	var coinCollecteds []ImpactPoint
+	coinCollecteds := d.coinCollectedsBuf[:0]
+	collected := false
 	for _, c := range d.coins {
 		if circlesOverlap(playerX, playerY, playerRadius, c.x, c.y, c.radius) {
 			gaugeGain += c.value
 			coinCollecteds = append(coinCollecteds, ImpactPoint{X: c.x, Y: c.y})
-			if se := FirstSE(); len(se) > 0 {
-				PlaySE(se)
-			}
+			collected = true
 			continue
 		}
 		d.coins[n] = c
 		n++
 	}
 	d.coins = d.coins[:n]
+	d.coinCollectedsBuf = coinCollecteds
+	if collected {
+		if se := FirstSE(); len(se) > 0 {
+			PlaySE(se)
+		}
+	}
 	return gaugeGain, coinCollecteds
 }

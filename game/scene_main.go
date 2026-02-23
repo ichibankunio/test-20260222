@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image/color"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -244,15 +245,29 @@ func (s *MainScene) clampPlayer() {
 }
 
 func drawBackdrop(screen *ebiten.Image) {
-	for y := 0.0; y < ScreenHeight; y += 16 {
-		for x := 0.0; x < ScreenWidth; x += 16 {
-			shade := gridDark
-			if int((x+y)/16)%2 == 0 {
-				shade = color.RGBA{R: 14, G: 18, B: 26, A: 255}
+	screen.DrawImage(backdropImage(), nil)
+}
+
+var (
+	backdropOnce sync.Once
+	backdropImg  *ebiten.Image
+)
+
+func backdropImage() *ebiten.Image {
+	backdropOnce.Do(func() {
+		img := ebiten.NewImage(ScreenWidth, ScreenHeight)
+		for y := 0.0; y < ScreenHeight; y += 16 {
+			for x := 0.0; x < ScreenWidth; x += 16 {
+				shade := gridDark
+				if int((x+y)/16)%2 == 0 {
+					shade = color.RGBA{R: 14, G: 18, B: 26, A: 255}
+				}
+				drawFilledRect(img, x, y, 16, 16, shade)
 			}
-			drawFilledRect(screen, x, y, 16, 16, shade)
 		}
-	}
+		backdropImg = img
+	})
+	return backdropImg
 }
 
 func drawGauge(screen *ebiten.Image, rate float64, stage int) {
