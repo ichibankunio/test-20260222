@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"image/color"
 	"sync"
 
@@ -12,18 +11,6 @@ const (
 	portraitPixelsPerBatch = 8000
 )
 
-const portraitPixelShaderSource = `//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
-	if srcPos.x < 0.0 || srcPos.x > 1.0 || srcPos.y < 0.0 || srcPos.y > 1.0 {
-		return vec4(0)
-	}
-	return color
-}
-`
-
 type portraitDrawPixel struct {
 	x    float64
 	y    float64
@@ -33,21 +20,20 @@ type portraitDrawPixel struct {
 
 type portraitPixelShaderRenderer struct {
 	once     sync.Once
-	shader   *ebiten.Shader
+	src      *ebiten.Image
 	initErr  error
 	vertices []ebiten.Vertex
 	indices  []uint16
-	op       ebiten.DrawTrianglesShaderOptions
+	op       ebiten.DrawTrianglesOptions
 }
 
 var globalPortraitPixelShaderRenderer portraitPixelShaderRenderer
 
 func (r *portraitPixelShaderRenderer) init() {
-	r.shader, r.initErr = ebiten.NewShader([]byte(portraitPixelShaderSource))
-	if r.initErr != nil {
-		r.initErr = fmt.Errorf("new portrait pixel shader: %w", r.initErr)
-		return
-	}
+	r.src = ebiten.NewImage(1, 1)
+	r.src.Fill(color.White)
+	r.op.Filter = ebiten.FilterNearest
+	r.op.AntiAlias = false
 }
 
 func (r *portraitPixelShaderRenderer) draw(screen *ebiten.Image, pixels []portraitDrawPixel) bool {
@@ -87,10 +73,10 @@ func (r *portraitPixelShaderRenderer) drawBatch(screen *ebiten.Image, pixels []p
 		size := float32(px.size)
 		col := colorToFloat32(px.col)
 
-		r.vertices[vi+0] = portraitPixelVertex(x, y, 0, 0, col)
-		r.vertices[vi+1] = portraitPixelVertex(x+size, y, 1, 0, col)
-		r.vertices[vi+2] = portraitPixelVertex(x, y+size, 0, 1, col)
-		r.vertices[vi+3] = portraitPixelVertex(x+size, y+size, 1, 1, col)
+		r.vertices[vi+0] = portraitPixelVertex(x, y, col)
+		r.vertices[vi+1] = portraitPixelVertex(x+size, y, col)
+		r.vertices[vi+2] = portraitPixelVertex(x, y+size, col)
+		r.vertices[vi+3] = portraitPixelVertex(x+size, y+size, col)
 
 		base := uint16(vi)
 		r.indices[ii+0] = base + 0
@@ -101,15 +87,16 @@ func (r *portraitPixelShaderRenderer) drawBatch(screen *ebiten.Image, pixels []p
 		r.indices[ii+5] = base + 3
 	}
 
-	screen.DrawTrianglesShader(r.vertices, r.indices, r.shader, &r.op)
+	screen.DrawTriangles(r.vertices, r.indices, r.src, &r.op)
 }
 
-func portraitPixelVertex(dstX, dstY, srcX, srcY float32, col [4]float32) ebiten.Vertex {
+func portraitPixelVertex(dstX, dstY float32, col [4]float32) ebiten.Vertex {
 	return ebiten.Vertex{
 		DstX:   dstX,
 		DstY:   dstY,
-		SrcX:   srcX,
-		SrcY:   srcY,
+		// Sample the center texel of the 1x1 white source image.
+		SrcX:   0.5,
+		SrcY:   0.5,
 		ColorR: col[0],
 		ColorG: col[1],
 		ColorB: col[2],
