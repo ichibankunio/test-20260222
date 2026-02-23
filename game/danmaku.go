@@ -8,7 +8,7 @@ import (
 
 type Danmaku interface {
 	Reset()
-	Update(playerX, playerY, playerRadius float64) DanmakuTick
+	Update(playerX, playerY, playerRadius float64, invincible bool) DanmakuTick
 	Draw(screen *ebiten.Image)
 }
 
@@ -21,6 +21,7 @@ type DanmakuTick struct {
 	Hit            bool
 	GaugeGain      float64
 	CoinCollecteds []ImpactPoint
+	BulletImpacts  []ImpactPoint
 }
 
 type projectile struct {
@@ -53,16 +54,16 @@ func (d *stageDanmaku) Reset() {
 	d.coins = d.coins[:0]
 }
 
-func (d *stageDanmaku) Update(playerX, playerY, playerRadius float64) DanmakuTick {
+func (d *stageDanmaku) Update(playerX, playerY, playerRadius float64, invincible bool) DanmakuTick {
 	if d.spawn != nil {
 		d.spawn(d, d.frame, playerX, playerY)
 	}
 	d.moveProjectiles(playerX, playerY)
 	d.cleanupProjectiles()
-	hit := d.hitEnemyBullet(playerX, playerY, playerRadius)
+	hit, bulletImpacts := d.hitEnemyBullet(playerX, playerY, playerRadius, invincible)
 	gaugeGain, coinCollecteds := d.collectCoins(playerX, playerY, playerRadius)
 	d.frame++
-	return DanmakuTick{Hit: hit, GaugeGain: gaugeGain, CoinCollecteds: coinCollecteds}
+	return DanmakuTick{Hit: hit, GaugeGain: gaugeGain, CoinCollecteds: coinCollecteds, BulletImpacts: bulletImpacts}
 }
 
 func (d *stageDanmaku) Draw(screen *ebiten.Image) {
@@ -165,13 +166,25 @@ func keepOnScreen(items []projectile) []projectile {
 	return items[:n]
 }
 
-func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64) bool {
+func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64, invincible bool) (bool, []ImpactPoint) {
+	n := 0
+	hit := false
+	var impacts []ImpactPoint
 	for _, b := range d.bullets {
 		if circlesOverlap(playerX, playerY, playerRadius, b.x, b.y, b.radius) {
-			return true
+			hit = true
+			if invincible {
+				impacts = append(impacts, ImpactPoint{X: b.x, Y: b.y})
+				continue
+			}
 		}
+		d.bullets[n] = b
+		n++
 	}
-	return false
+	if invincible {
+		d.bullets = d.bullets[:n]
+	}
+	return hit, impacts
 }
 
 func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) (float64, []ImpactPoint) {

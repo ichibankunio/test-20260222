@@ -61,10 +61,13 @@ func (s *MainScene) Update(_ *flib.Game) error {
 
 	s.updatePlayerFromSwipe()
 	if s.danmaku != nil {
-		tick := s.danmaku.Update(s.playerX, s.playerY, s.playerRadius)
+		tick := s.danmaku.Update(s.playerX, s.playerY, s.playerRadius, s.invincible)
 		for _, p := range tick.CoinCollecteds {
 			s.particles.spawnCoinPickup(p.X, p.Y)
 			s.portrait.onCoinCollected(p.X, p.Y)
+		}
+		for _, p := range tick.BulletImpacts {
+			s.particles.spawnBulletImpact(p.X, p.Y)
 		}
 		if tick.Hit {
 			if s.invincible {
