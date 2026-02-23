@@ -37,8 +37,9 @@ type portraitBuilder struct {
 }
 
 const (
-	shardsPerCoin = 20
-	maxShardCount = 420
+	shardsPerCoin     = 20
+	maxShardCount     = 420
+	portraitPixelSize = 1.0
 )
 
 func newPortraitBuilder() portraitBuilder {
@@ -67,8 +68,7 @@ func newPortraitBuilder() portraitBuilder {
 	left := 0.0
 	top := 0.0
 
-	const pxSize = 2
-	targetStep := float64(pxSize)
+	targetStep := portraitPixelSize
 	capacity := int((targetW / targetStep) * (targetH / targetStep))
 	pixels := make([]portraitPixel, 0, capacity)
 	for ty := 0.0; ty < targetH; ty += targetStep {
@@ -188,11 +188,11 @@ func (p *portraitBuilder) draw(screen *ebiten.Image) {
 		if !px.filled {
 			continue
 		}
-		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: px.x, y: px.y, size: 2, col: px.col})
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: px.x, y: px.y, size: portraitPixelSize, col: px.col})
 	}
 	for _, shard := range p.shards {
-		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x, y: shard.y, size: 1.8, col: shard.col})
-		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x + shard.marbleDX, y: shard.y + shard.marbleDY, size: 0.9, col: shard.marbleCol})
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x, y: shard.y, size: 1, col: shard.col})
+		p.drawPixels = append(p.drawPixels, portraitDrawPixel{x: shard.x + shard.marbleDX, y: shard.y + shard.marbleDY, size: 1, col: shard.marbleCol})
 	}
 	if globalPortraitPixelShaderRenderer.draw(screen, p.drawPixels) {
 		return
