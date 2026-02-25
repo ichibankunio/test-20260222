@@ -128,12 +128,12 @@ var (
 	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
 	uiGaugeBase   = color.RGBA{R: 5, G: 5, B: 8, A: 255}
-	playerMain    = color.RGBA{R: 158, G: 37, B: 255, A: 255}
-	playerAccent  = color.RGBA{R: 250, G: 250, B: 250, A: 255}
-	enemyBullet   = color.RGBA{R: 16, G: 186, B: 166, A: 255}
-	enemyBulletIn = color.RGBA{R: 175, G: 255, B: 245, A: 255}
-	coinMain      = color.RGBA{R: 255, G: 73, B: 73, A: 255}
-	coinAccent    = color.RGBA{R: 255, G: 195, B: 80, A: 255}
+	playerMain    = color.RGBA{R: 248, G: 232, B: 56, A: 255}
+	playerAccent  = color.RGBA{R: 176, G: 128, B: 24, A: 255}
+	enemyBullet   = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	enemyBulletIn = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	coinMain      = color.RGBA{R: 88, G: 200, B: 88, A: 255}
+	coinAccent    = color.RGBA{R: 56, G: 136, B: 56, A: 255}
 )
 
 const (
