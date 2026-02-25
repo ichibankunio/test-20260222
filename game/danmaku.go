@@ -133,7 +133,7 @@ func (d *stageDanmaku) spawnHoming(x, y, speed, homing float64, life int, player
 }
 
 func (d *stageDanmaku) spawnCoin(x, y, vx, vy, value float64) {
-	d.coins = append(d.coins, projectile{x: x, y: y, vx: vx, vy: vy, radius: 6.0, value: value})
+	d.coins = append(d.coins, projectile{x: x, y: y, vx: vx, vy: vy, radius: 3.2, value: value})
 }
 
 func (d *stageDanmaku) moveProjectiles(playerX, playerY float64) {

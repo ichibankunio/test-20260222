@@ -17,10 +17,6 @@ const impactParticleShaderSource = `//kage:unit pixels
 
 package main
 
-func blend(a vec3, b vec3, t float) vec3 {
-	return a*(1.0-t) + b*t
-}
-
 func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	dist := length(srcPos)
 	if dist >= 1.0 {
@@ -38,8 +34,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4, custom vec4) vec4 {
 	flare := pow(clamp(streak*0.5+0.5, 0.0, 1.0), 3.0) * pow(clamp(1.0-dist, 0.0, 1.0), 1.7)
 
 	alpha := clamp((halo*0.72+core*0.28+flare*0.65)*life, 0.0, 1.0)
-	col := blend(color.rgb, vec3(1.0, 0.98, 0.92), core*0.55+flare*0.25)
-	return vec4(col*alpha, alpha)
+	return vec4(color.rgb*alpha, alpha)
 }
 `
 
@@ -90,17 +85,20 @@ func (p *impactParticleSystem) draw(screen *ebiten.Image) {
 }
 
 func (p *impactParticleSystem) spawnPlayerBurst(x, y float64) {
-	p.spawnRadial(x, y, 56, 0.35, 3.0, 1.1, 2.8, 24, 42, [2][4]float32{colorToFloat32(playerMain), colorToFloat32(playerAccent)})
-	p.spawnRadial(x, y, 22, 2.8, 5.0, 0.9, 1.7, 16, 28, [2][4]float32{colorToFloat32(playerMain), colorToFloat32(playerAccent)})
+	playerCol := colorToFloat32(playerMain)
+	p.spawnRadial(x, y, 56, 0.35, 3.0, 1.1, 2.8, 24, 42, [2][4]float32{playerCol, playerCol})
+	p.spawnRadial(x, y, 22, 2.8, 5.0, 0.9, 1.7, 16, 28, [2][4]float32{playerCol, playerCol})
 }
 
 func (p *impactParticleSystem) spawnCoinPickup(x, y float64) {
-	p.spawnRadial(x, y, 18, 0.25, 2.3, 0.9, 2.1, 18, 34, [2][4]float32{colorToFloat32(coinMain), colorToFloat32(coinAccent)})
-	p.spawnRadial(x, y, 10, 1.8, 3.6, 0.8, 1.5, 12, 24, [2][4]float32{colorToFloat32(coinMain), colorToFloat32(coinAccent)})
+	coinCol := colorToFloat32(coinMain)
+	p.spawnRadial(x, y, 18, 0.25, 2.3, 0.9, 2.1, 18, 34, [2][4]float32{coinCol, coinCol})
+	p.spawnRadial(x, y, 10, 1.8, 3.6, 0.8, 1.5, 12, 24, [2][4]float32{coinCol, coinCol})
 }
 
 func (p *impactParticleSystem) spawnBulletImpact(x, y float64) {
-	p.spawnRadial(x, y, 10, 0.2, 1.4, 0.7, 1.5, 10, 18, [2][4]float32{colorToFloat32(enemyBullet), colorToFloat32(enemyBulletIn)})
+	bulletCol := colorToFloat32(enemyBullet)
+	p.spawnRadial(x, y, 10, 0.2, 1.4, 0.7, 1.5, 10, 18, [2][4]float32{bulletCol, bulletCol})
 }
 
 func (p *impactParticleSystem) spawnRadial(x, y float64, count int, speedMin, speedMax, radiusMin, radiusMax float64, lifeMin, lifeMax int, palette [2][4]float32) {
