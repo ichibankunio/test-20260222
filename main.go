@@ -10,7 +10,7 @@ import (
 
 func main() {
 	ebiten.SetWindowSize(432, 768)
-	ebiten.SetWindowTitle("test-20260222")
+	ebiten.SetWindowTitle("5分間弾幕避けたらお宝画像ゲット")
 
 	mainGame := &game.Game{
 		FlibGame: &flib.Game{

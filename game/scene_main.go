@@ -16,10 +16,11 @@ type MainScene struct {
 	playerX      float64
 	playerY      float64
 	playerRadius float64
-	stage        int
-	gauge        float64
+	remaining    int
+	pattern      int
 	invincible   bool
 	gameOver     bool
+	gameClear    bool
 	danmaku      Danmaku
 	particles    impactParticleSystem
 	portrait     portraitBuilder
@@ -53,9 +54,9 @@ func (s *MainScene) Update(_ *flib.Game) error {
 		return nil
 	}
 
-	if s.gameOver {
+	if s.gameOver || s.gameClear {
 		if isRestartInputJustPressed() {
-			s.retryStage()
+			s.reset()
 		}
 		return nil
 	}
@@ -81,12 +82,15 @@ func (s *MainScene) Update(_ *flib.Game) error {
 			}
 			return nil
 		}
-		s.gauge = clamp(s.gauge+tick.GaugeGain, 0, stageGaugeMax)
 	}
-	if s.gauge >= stageGaugeMax {
-		s.stage++
-		s.startStage()
+	if s.remaining > 0 {
+		s.remaining--
+		if s.remaining == 0 {
+			s.gameClear = true
+			return nil
+		}
 	}
+	s.updateDanmakuPattern()
 	return nil
 }
 
@@ -94,7 +98,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	screen.Fill(bgNight)
 	drawBackdrop(screen)
 	s.portrait.draw(screen)
-	drawGauge(screen, s.gauge/stageGaugeMax, s.stage)
+	drawTimer(screen, s.remaining)
 	if !s.gameOver {
 		drawPlayer(screen, s.playerX, s.playerY, s.playerRadius)
 	}
@@ -103,7 +107,7 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 	}
 	s.particles.draw(screen)
 
-	drawUITextAt(screen, fmt.Sprintf("STAGE %d", s.stage), 4, 4)
+	drawUITextAt(screen, "5 MIN SURVIVAL", 4, 4)
 	drawUITextAt(screen, fmt.Sprintf("ART %02d%%", int(s.portrait.completionRate()*100)), 82, 4)
 	drawDebugButton(screen, s.invincible)
 	drawUITextAt(screen, "SWIPE/DRAG: MOVE", 4, 16)
@@ -112,13 +116,17 @@ func (s *MainScene) Draw(screen *ebiten.Image) {
 		drawUITextCentered(screen, "GAME OVER", 0, 112, ScreenWidth, 12, 16)
 		drawUITextCentered(screen, "TAP/SPACE: RETRY", 0, 128, ScreenWidth, 12, 12)
 	}
+	if s.gameClear {
+		drawUITextCentered(screen, "CLEAR!", 0, 104, ScreenWidth, 12, 16)
+		drawUITextCentered(screen, "お宝画像ゲット!", 0, 120, ScreenWidth, 12, 12)
+		drawUITextCentered(screen, "TAP/SPACE: PLAY AGAIN", 0, 136, ScreenWidth, 12, 12)
+	}
 }
 
 var (
 	bgNight       = color.RGBA{R: 7, G: 8, B: 12, A: 255}
 	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
-	uiGaugeFill   = color.RGBA{R: 150, G: 43, B: 196, A: 255}
 	uiGaugeBase   = color.RGBA{R: 5, G: 5, B: 8, A: 255}
 	playerMain    = color.RGBA{R: 158, G: 37, B: 255, A: 255}
 	playerAccent  = color.RGBA{R: 250, G: 250, B: 250, A: 255}
@@ -130,8 +138,11 @@ var (
 
 const (
 	playerMoveMargin = 10.0
-	stageGaugeMax    = 100.0
-	stageCycleCount  = 10
+	gameSeconds      = 5 * 60
+	tps              = 60
+	gameFrames       = gameSeconds * tps
+	patternFrames    = 30 * tps
+	patternCount     = 10
 	debugBtnW        = 52.0
 	debugBtnH        = 14.0
 	debugBtnX        = ScreenWidth - debugBtnW - 4.0
@@ -139,21 +150,18 @@ const (
 )
 
 func (s *MainScene) reset() {
-	s.stage = 1
 	s.portrait = newPortraitBuilder()
-	s.retryStage()
-}
-
-func (s *MainScene) retryStage() {
 	s.playerX = ScreenWidth / 2
 	s.playerY = ScreenHeight - 36
 	s.playerRadius = 6
 	s.gameOver = false
+	s.gameClear = false
+	s.remaining = gameFrames
+	s.pattern = -1
 	s.touchActive = false
 	s.mouseActive = false
-	s.gauge = 0
 	s.particles.reset()
-	s.startStage()
+	s.updateDanmakuPattern()
 }
 
 func (s *MainScene) handleDebugToggleInput() bool {
@@ -181,9 +189,14 @@ func (s *MainScene) handleDebugToggleInput() bool {
 	return false
 }
 
-func (s *MainScene) startStage() {
-	s.gauge = 0
-	s.danmaku = newDanmakuForStage(s.stage)
+func (s *MainScene) updateDanmakuPattern() {
+	elapsed := gameFrames - s.remaining
+	next := (elapsed / patternFrames) % patternCount
+	if next == s.pattern {
+		return
+	}
+	s.pattern = next
+	s.danmaku = newDanmakuForStage(s.pattern + 1)
 }
 
 func (s *MainScene) updatePlayerFromSwipe() {
@@ -270,41 +283,19 @@ func backdropImage() *ebiten.Image {
 	return backdropImg
 }
 
-func drawGauge(screen *ebiten.Image, rate float64, stage int) {
+func drawTimer(screen *ebiten.Image, remaining int) {
 	leftX := 8.0
 	topY := 38.0
-	boxW := 44.0
-	boxH := 28.0
-	barY := topY + 10.0
-	barH := 8.0
-	rightX := ScreenWidth - 8.0 - boxW
-	barX := leftX + boxW
-	barW := rightX - barX
+	boxW := ScreenWidth - 16.0
+	boxH := 18.0
 
 	drawFilledRect(screen, leftX, topY, boxW, boxH, uiGaugeBase)
-	drawFilledRect(screen, barX, barY, barW, barH, uiGaugeBase)
-	drawFilledRect(screen, rightX, topY, boxW, boxH, uiGaugeBase)
-
-	fillPad := 2.0
-	fillW := (boxW - fillPad*2) * clamp(rate, 0, 1)
-	drawFilledRect(screen, leftX+fillPad, topY+fillPad, fillW, boxH-fillPad*2, uiGaugeFill)
-
-	// One-stroke style frame: trace the full outer contour and use rounded joins.
 	var frame vector.Path
 	frame.MoveTo(float32(leftX), float32(topY))
 	frame.LineTo(float32(leftX+boxW), float32(topY))
-	frame.LineTo(float32(leftX+boxW), float32(barY))
-	frame.LineTo(float32(rightX), float32(barY))
-	frame.LineTo(float32(rightX), float32(topY))
-	frame.LineTo(float32(rightX+boxW), float32(topY))
-	frame.LineTo(float32(rightX+boxW), float32(topY+boxH))
-	frame.LineTo(float32(rightX), float32(topY+boxH))
-	frame.LineTo(float32(rightX), float32(barY+barH))
-	frame.LineTo(float32(leftX+boxW), float32(barY+barH))
 	frame.LineTo(float32(leftX+boxW), float32(topY+boxH))
 	frame.LineTo(float32(leftX), float32(topY+boxH))
 	frame.Close()
-
 	frameDrawOp := &vector.DrawPathOptions{}
 	frameDrawOp.AntiAlias = true
 	frameDrawOp.ColorScale.ScaleWithColor(uiBorder)
@@ -313,8 +304,10 @@ func drawGauge(screen *ebiten.Image, rate float64, stage int) {
 	frameStroke.LineJoin = vector.LineJoinRound
 	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
 
-	drawUITextCentered(screen, fmt.Sprintf("%d", stage), int(leftX), int(topY), int(boxW), int(boxH), 16)
-	drawUITextCentered(screen, fmt.Sprintf("%d", stage+1), int(rightX), int(topY), int(boxW), int(boxH), 16)
+	seconds := max(0, remaining/tps)
+	minute := seconds / 60
+	second := seconds % 60
+	drawUITextCentered(screen, fmt.Sprintf("TIME %02d:%02d", minute, second), int(leftX), int(topY), int(boxW), int(boxH), 12)
 }
 
 func drawDebugButton(screen *ebiten.Image, invincible bool) {
@@ -414,7 +407,7 @@ func stageNumber(stage int) int {
 	if stage <= 0 {
 		return 0
 	}
-	return (stage - 1) % stageCycleCount
+	return (stage - 1) % patternCount
 }
 
 func isJumpInputJustPressed() bool {
