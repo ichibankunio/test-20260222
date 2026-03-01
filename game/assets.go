@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/hajimehoshi/bitmapfont/v4"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
@@ -23,9 +24,6 @@ var bgmDir embed.FS
 //go:embed assets/se
 var seDir embed.FS
 
-//go:embed assets/fonts
-var fontsDir embed.FS
-
 //go:embed assets/data
 var dataDir embed.FS
 
@@ -37,7 +35,7 @@ type SampleJSON struct {
 var (
 	assetAudioContext *audio.Context
 	assetImages       = map[string]*ebiten.Image{}
-	assetGoTextFaces  = map[int]*text.GoTextFace{}
+	assetTextFace     text.Face
 	assetSE           [][]byte
 	assetBGM          []*audio.Player
 	assetJSON         = map[string]SampleJSON{}
@@ -71,17 +69,7 @@ func loadImages() {
 }
 
 func loadFonts() {
-	b, err := fontsDir.ReadFile("assets/fonts/sawarabi-gothic-medium.ttf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	src, err := text.NewGoTextFaceSource(bytes.NewReader(b))
-	if err != nil {
-		log.Fatal(err)
-	}
-	assetGoTextFaces[16] = &text.GoTextFace{Source: src, Size: 16}
-	assetGoTextFaces[12] = &text.GoTextFace{Source: src, Size: 12}
-	assetGoTextFaces[28] = &text.GoTextFace{Source: src, Size: 28}
+	assetTextFace = text.NewGoXFace(bitmapfont.Face)
 }
 
 func loadSE() {
@@ -143,11 +131,8 @@ func GetImage(name string) *ebiten.Image {
 	return assetImages[name]
 }
 
-func GetGoTextFace(size int) *text.GoTextFace {
-	if f := assetGoTextFaces[size]; f != nil {
-		return f
-	}
-	return assetGoTextFaces[16]
+func GetTextFace() text.Face {
+	return assetTextFace
 }
 
 func GetJSON(name string) (SampleJSON, bool) {
