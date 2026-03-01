@@ -357,16 +357,20 @@ func drawUITextAt(screen *ebiten.Image, body string, x, y int) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorScale.ScaleWithColor(uiBorder)
-	text.Draw(screen, body, GetGoTextFace(12), op)
+	text.Draw(screen, body, GetTextFace(), op)
 }
 
 func drawUITextCentered(screen *ebiten.Image, body string, x, y, w, h, size int) {
 	op := &text.DrawOptions{}
+	if size > 0 && size != 12 {
+		scale := float64(size) / 12.0
+		op.GeoM.Scale(scale, scale)
+	}
 	op.GeoM.Translate(float64(x+w/2), float64(y+h/2))
 	op.LayoutOptions.PrimaryAlign = text.AlignCenter
 	op.LayoutOptions.SecondaryAlign = text.AlignCenter
 	op.ColorScale.ScaleWithColor(uiBorder)
-	text.Draw(screen, body, GetGoTextFace(size), op)
+	text.Draw(screen, body, GetTextFace(), op)
 }
 
 func drawPlayer(screen *ebiten.Image, x, y, r float64) {

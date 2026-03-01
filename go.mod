@@ -3,6 +3,7 @@ module github.com/ichibankunio/test-20260222
 go 1.24.0
 
 require (
+	github.com/hajimehoshi/bitmapfont/v4 v4.1.0
 	github.com/hajimehoshi/ebiten/v2 v2.9.8
 	github.com/ichibankunio/flib v1.2.1
 )
@@ -17,6 +18,7 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
 	github.com/ichibankunio/fvec v0.2.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/image v0.31.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect

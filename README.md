@@ -5,8 +5,7 @@
 ## Included
 
 - 画像ロード: `game/assets/images`
-- フォントロード: `game/assets/fonts`
-- `text/v2` の `GoTextFace` で `Hello codex` 表示
+- `github.com/hajimehoshi/bitmapfont`（12px）を `text/v2` 経由で使用
 - 画面下部テキストに `hello codex!!!` 表示
 - SE/BGMロード: `game/assets/se`, `game/assets/bgm`
 - JSONロード: `game/assets/data`
