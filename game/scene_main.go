@@ -128,6 +128,10 @@ var (
 	gridDark      = color.RGBA{R: 20, G: 24, B: 32, A: 255}
 	uiBorder      = color.RGBA{R: 240, G: 240, B: 240, A: 255}
 	uiGaugeBase   = color.RGBA{R: 5, G: 5, B: 8, A: 255}
+	uiTimerPanel  = color.RGBA{R: 16, G: 22, B: 34, A: 220}
+	uiTimerBorder = color.RGBA{R: 144, G: 196, B: 255, A: 255}
+	uiTimerTrack  = color.RGBA{R: 40, G: 52, B: 74, A: 255}
+	uiTimerFill   = color.RGBA{R: 84, G: 212, B: 248, A: 255}
 	playerMain    = color.RGBA{R: 248, G: 232, B: 56, A: 255}
 	playerAccent  = color.RGBA{R: 176, G: 128, B: 24, A: 255}
 	enemyBullet   = color.RGBA{R: 255, G: 255, B: 255, A: 255}
@@ -285,11 +289,11 @@ func backdropImage() *ebiten.Image {
 
 func drawTimer(screen *ebiten.Image, remaining int) {
 	leftX := 8.0
-	topY := 38.0
+	topY := 36.0
 	boxW := ScreenWidth - 16.0
-	boxH := 18.0
+	boxH := 24.0
 
-	drawFilledRect(screen, leftX, topY, boxW, boxH, uiGaugeBase)
+	drawFilledRect(screen, leftX, topY, boxW, boxH, uiTimerPanel)
 	var frame vector.Path
 	frame.MoveTo(float32(leftX), float32(topY))
 	frame.LineTo(float32(leftX+boxW), float32(topY))
@@ -298,16 +302,29 @@ func drawTimer(screen *ebiten.Image, remaining int) {
 	frame.Close()
 	frameDrawOp := &vector.DrawPathOptions{}
 	frameDrawOp.AntiAlias = true
-	frameDrawOp.ColorScale.ScaleWithColor(uiBorder)
+	frameDrawOp.ColorScale.ScaleWithColor(uiTimerBorder)
 	frameStroke := &vector.StrokeOptions{}
-	frameStroke.Width = 2
+	frameStroke.Width = 1.5
 	frameStroke.LineJoin = vector.LineJoinRound
 	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
+
+	progress := clamp(float64(max(0, remaining))/float64(gameFrames), 0, 1)
+	trackX := leftX + 4.0
+	trackY := topY + 14.0
+	trackW := boxW - 8.0
+	trackH := 6.0
+	drawFilledRect(screen, trackX, trackY, trackW, trackH, uiTimerTrack)
+	fillW := trackW * progress
+	if fillW > 0 {
+		drawFilledRect(screen, trackX, trackY, fillW, trackH, uiTimerFill)
+		vector.DrawFilledCircle(screen, float32(trackX+fillW), float32(trackY+trackH/2), float32(trackH/2), uiTimerFill, true)
+	}
 
 	seconds := max(0, remaining/tps)
 	minute := seconds / 60
 	second := seconds % 60
-	drawUITextCentered(screen, fmt.Sprintf("TIME %02d:%02d", minute, second), int(leftX), int(topY), int(boxW), int(boxH), 12)
+	drawUITextAt(screen, "TIME LEFT", int(leftX)+4, int(topY)+2)
+	drawUITextCentered(screen, fmt.Sprintf("%02d:%02d", minute, second), int(leftX), int(topY)-2, int(boxW), int(boxH), 12)
 }
 
 func drawDebugButton(screen *ebiten.Image, invincible bool) {
