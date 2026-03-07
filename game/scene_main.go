@@ -136,8 +136,8 @@ var (
 	playerAccent  = color.RGBA{R: 176, G: 128, B: 24, A: 255}
 	enemyBullet   = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	enemyBulletIn = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	coinMain      = color.RGBA{R: 248, G: 232, B: 56, A: 255}
-	coinAccent    = color.RGBA{R: 176, G: 128, B: 24, A: 255}
+	coinMain      = color.RGBA{R: 72, G: 214, B: 92, A: 255}
+	coinAccent    = color.RGBA{R: 38, G: 138, B: 54, A: 255}
 )
 
 const (
