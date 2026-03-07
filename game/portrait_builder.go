@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/ichibankunio/test-20260222/game/mathutil"
 )
 
 type portraitPixel struct {
@@ -156,8 +157,8 @@ func (p *portraitBuilder) update() {
 			target := p.pixels[shard.targetIndex]
 			dx := target.x - shard.x
 			dy := target.y - shard.y
-			shard.vx = lerp(shard.vx, dx*0.12, 0.08)
-			shard.vy = lerp(shard.vy, dy*0.12, 0.08)
+			shard.vx = mathutil.Lerp(shard.vx, dx*0.12, 0.08)
+			shard.vy = mathutil.Lerp(shard.vy, dy*0.12, 0.08)
 			if dx*dx+dy*dy < 1.8*1.8 || shard.life <= 6 {
 				p.fill(shard.targetIndex)
 				continue
@@ -227,5 +228,5 @@ func (p *portraitBuilder) completionRate() float64 {
 	if len(p.pixels) == 0 {
 		return 1
 	}
-	return clamp(float64(p.progressFilled)/float64(len(p.pixels)), 0, 1)
+	return mathutil.Clamp(float64(p.progressFilled)/float64(len(p.pixels)), 0, 1)
 }

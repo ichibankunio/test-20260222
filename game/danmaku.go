@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/ichibankunio/test-20260222/game/mathutil"
 )
 
 type Danmaku interface {
@@ -146,8 +147,8 @@ func (d *stageDanmaku) moveProjectiles(playerX, playerY float64) {
 				speed := math.Hypot(d.bullets[i].vx, d.bullets[i].vy)
 				targetVX := dx / dist * speed
 				targetVY := dy / dist * speed
-				d.bullets[i].vx = lerp(d.bullets[i].vx, targetVX, d.bullets[i].homing)
-				d.bullets[i].vy = lerp(d.bullets[i].vy, targetVY, d.bullets[i].homing)
+				d.bullets[i].vx = mathutil.Lerp(d.bullets[i].vx, targetVX, d.bullets[i].homing)
+				d.bullets[i].vy = mathutil.Lerp(d.bullets[i].vy, targetVY, d.bullets[i].homing)
 			}
 			if d.bullets[i].life > 0 {
 				d.bullets[i].life--
@@ -185,7 +186,7 @@ func (d *stageDanmaku) hitEnemyBullet(playerX, playerY, playerRadius float64, in
 	hit := false
 	impacts := d.bulletImpactsBuf[:0]
 	for _, b := range d.bullets {
-		if circlesOverlap(playerX, playerY, playerRadius, b.x, b.y, b.radius) {
+		if mathutil.CirclesOverlap(playerX, playerY, playerRadius, b.x, b.y, b.radius) {
 			hit = true
 			if invincible {
 				impacts = append(impacts, ImpactPoint{X: b.x, Y: b.y})
@@ -208,7 +209,7 @@ func (d *stageDanmaku) collectCoins(playerX, playerY, playerRadius float64) (flo
 	coinCollecteds := d.coinCollectedsBuf[:0]
 	collected := false
 	for _, c := range d.coins {
-		if circlesOverlap(playerX, playerY, playerRadius, c.x, c.y, c.radius) {
+		if mathutil.CirclesOverlap(playerX, playerY, playerRadius, c.x, c.y, c.radius) {
 			gaugeGain += c.value
 			coinCollecteds = append(coinCollecteds, ImpactPoint{X: c.x, Y: c.y})
 			collected = true

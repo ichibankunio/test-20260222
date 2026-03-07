@@ -10,6 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/ichibankunio/flib"
+	"github.com/ichibankunio/test-20260222/game/mathutil"
 )
 
 type MainScene struct {
@@ -257,8 +258,8 @@ func (s *MainScene) clampPlayer() {
 	right := ScreenWidth - playerMoveMargin - s.playerRadius
 	top := 44.0
 	bottom := ScreenHeight - 14.0 - s.playerRadius
-	s.playerX = clamp(s.playerX, left, right)
-	s.playerY = clamp(s.playerY, top, bottom)
+	s.playerX = mathutil.Clamp(s.playerX, left, right)
+	s.playerY = mathutil.Clamp(s.playerY, top, bottom)
 }
 
 func drawBackdrop(screen *ebiten.Image) {
@@ -308,7 +309,7 @@ func drawTimer(screen *ebiten.Image, remaining int) {
 	frameStroke.LineJoin = vector.LineJoinRound
 	vector.StrokePath(screen, &frame, frameStroke, frameDrawOp)
 
-	progress := clamp(float64(max(0, remaining))/float64(gameFrames), 0, 1)
+	progress := mathutil.Clamp(float64(max(0, remaining))/float64(gameFrames), 0, 1)
 	trackX := leftX + 4.0
 	trackY := topY + 14.0
 	trackW := boxW - 8.0
@@ -400,28 +401,6 @@ func drawCoins(screen *ebiten.Image, coins []projectile) {
 
 func drawFilledRect(screen *ebiten.Image, x, y, width, height float64, c color.Color) {
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), c, true)
-}
-
-func circlesOverlap(ax, ay, ar, bx, by, br float64) bool {
-	dx := ax - bx
-	dy := ay - by
-	distSq := dx*dx + dy*dy
-	r := ar + br
-	return distSq <= r*r
-}
-
-func clamp(v, minV, maxV float64) float64 {
-	if v < minV {
-		return minV
-	}
-	if v > maxV {
-		return maxV
-	}
-	return v
-}
-
-func lerp(a, b, t float64) float64 {
-	return a + (b-a)*clamp(t, 0, 1)
 }
 
 func stageNumber(stage int) int {

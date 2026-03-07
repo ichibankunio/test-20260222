@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/ichibankunio/test-20260222/game/mathutil"
 )
 
 const (
@@ -179,7 +180,7 @@ func (r *impactParticleRenderer) drawBatch(screen *ebiten.Image, particles []imp
 		cx := float32(p.x)
 		cy := float32(p.y)
 		half := float32(p.radius)
-		lifeRate := float32(clamp(float64(p.life)/float64(max(1, p.maxLife)), 0, 1))
+		lifeRate := float32(mathutil.Clamp(float64(p.life)/float64(max(1, p.maxLife)), 0, 1))
 		turb := float32(p.turb)
 		coreRatio := float32(p.coreRatio)
 
